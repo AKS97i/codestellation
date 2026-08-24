@@ -270,6 +270,12 @@ export class OnboardingWizardModal extends Modal {
         await navigator.clipboard.writeText(GRAPHIFY_INSTALL_CMD);
         new Notice('Copied. Run it, then reopen this wizard.');
       });
+      if (process.platform === 'win32') {
+        contentEl.createEl('p', {
+          cls: 'setting-item-description',
+          text: 'Already installed it? On Windows, Obsidian only sees PATH changes from a full restart, not just reopening this wizard. Fully quit and reopen Obsidian, then try again.',
+        });
+      }
       new Setting(contentEl).addButton((btn) => btn.setButtonText('Next').setCta().onClick(guarded(async () => {
         // some selected projects may already have a graph even though graphify itself
         // isn't on PATH right now (e.g. it ran on another machine) — still worth exporting those

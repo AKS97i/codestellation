@@ -1,6 +1,51 @@
 import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import { PATHS, graphifyCandidates, claudeCliCandidates } from '../core/paths';
 import { run } from '../core/shell';
+
+/**
+ * A real Windows beta tester hit this: they ran `pip install graphifyy`
+ * from PowerShell and the plugin still reported it as not installed.
+ * Two real, distinct causes are possible and neither is fixable by
+ * guessing a single hardcoded path:
+ *
+ * 1. PATH is genuinely correct, but Obsidian was already running when
+ *    graphify was installed — a Windows process's PATH is captured at
+ *    launch, so a newly-updated PATH is invisible until the app fully
+ *    restarts. No code fix for this; it's a restart-Obsidian issue.
+ * 2. pip's per-user install on Windows puts console scripts in a
+ *    version-specific `Scripts` folder that usually isn't on PATH at
+ *    all (`%APPDATA%\Python\Python3XX\Scripts`, or the equivalent under
+ *    `%LOCALAPPDATA%\Programs\Python\Python3XX` for a per-user Python
+ *    install) — these are standard, documented Python install
+ *    conventions, not a guess specific to this project. This scans for
+ *    them directly instead of assuming PATH is complete.
+ *
+ * This has NOT been verified against a real Windows machine — nobody
+ * involved in building this plugin has one. If it still doesn't detect
+ * graphify after this, the diagnostics command's platform/path dump is
+ * the next thing to check, not another blind guess.
+ */
+async function windowsGraphifyCandidates(): Promise<string[]> {
+  if (process.platform !== 'win32') return [];
+  const candidates: string[] = [];
+  const roots = [process.env.APPDATA && path.join(process.env.APPDATA, 'Python'), process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'Programs', 'Python')].filter(
+    (p): p is string => Boolean(p)
+  );
+  for (const root of roots) {
+    const entries = await fs.readdir(root).catch(() => [] as string[]);
+    for (const entry of entries) {
+      if (/^Python\d/i.test(entry)) candidates.push(path.join(root, entry, 'Scripts', 'graphify.exe'));
+    }
+  }
+  if (process.env.USERPROFILE) {
+    // pipx's Windows default location, and the same ~/.local/bin
+    // convention pipx and this plugin already use on macOS/Linux
+    candidates.push(path.join(process.env.USERPROFILE, 'pipx', 'bin', 'graphify.exe'));
+    candidates.push(path.join(process.env.USERPROFILE, '.local', 'bin', 'graphify.exe'));
+  }
+  return candidates;
+}
 
 export interface AgentAvailability {
   claudeCode: boolean;
@@ -32,7 +77,8 @@ async function resolveGraphifyBin(): Promise<{ bin: string | null; version: stri
   if (cached !== undefined) {
     return cached;
   }
-  for (const candidate of graphifyCandidates()) {
+  const candidates = [...graphifyCandidates(), ...(await windowsGraphifyCandidates())];
+  for (const candidate of candidates) {
     try {
       const { stdout } = await run(candidate, ['--version']);
       const match = stdout.match(/(\d+\.\d+\.\d+)/);
