@@ -1,0 +1,21 @@
+{
+  "name": "codestellation",
+  "version": "0.1.0",
+  "description": "An AI-powered command center for your coding projects, right inside your Obsidian vault.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "postinstall": "node scripts/ensure-fixtures.mjs",
+    "pretest": "node scripts/ensure-fixtures.mjs",
+    "dev": "node esbuild.config.mjs --watch",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs --production",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.24.0",
+    "obsidian": "latest",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

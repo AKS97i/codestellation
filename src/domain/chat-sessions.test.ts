@@ -1,0 +1,65 @@
+import { describe, it, expect } from 'vitest';
+import { claudeSessionsToChats, codexSessionsToChats, mergeChatsSortedByRecent } from './chat-sessions';
+import type { ParsedSession } from '../adapters/claude-code/types';
+import type { ParsedCodexSession } from '../adapters/codex/types';
+
+function claudeSession(overrides: Partial<ParsedSession> = {}): ParsedSession {
+  return {
+    sessionId: 'abc12345',
+    cwd: '/proj',
+    firstTimestamp: '2026-08-20T10:00:00.000Z',
+    lastTimestamp: '2026-08-20T11:00:00.000Z',
+    messageCount: 4,
+    totalInputTokens: 0,
+    totalOutputTokens: 0,
+    totalCacheCreationTokens: 0,
+    totalCacheReadTokens: 0,
+    modelsUsed: [],
+    tokensByModel: {},
+    unparsedLineCount: 0,
+    ...overrides,
+  };
+}
+
+function codexSession(overrides: Partial<ParsedCodexSession> = {}): ParsedCodexSession {
+  return {
+    sessionId: 'def67890',
+    cwd: '/proj',
+    cliVersion: '0.77.0',
+    model: 'gpt-5-codex',
+    firstTimestamp: '2026-08-19T10:00:00.000Z',
+    lastTimestamp: '2026-08-19T10:30:00.000Z',
+    totalTokens: 0,
+    totalInputTokens: 0,
+    totalOutputTokens: 0,
+    unparsedLineCount: 0,
+    ...overrides,
+  };
+}
+
+describe('claudeSessionsToChats / codexSessionsToChats', () => {
+  it('drops sessions with no sessionId rather than showing a blank row', () => {
+    expect(claudeSessionsToChats([claudeSession({ sessionId: '' })])).toHaveLength(0);
+    expect(codexSessionsToChats([codexSession({ sessionId: null })])).toHaveLength(0);
+  });
+
+  it('tags each chat with its originating agent', () => {
+    expect(claudeSessionsToChats([claudeSession()])[0].agent).toBe('claude');
+    expect(codexSessionsToChats([codexSession()])[0].agent).toBe('codex');
+  });
+
+  it('falls back to firstTimestamp for updatedAt when lastTimestamp is missing', () => {
+    const chat = claudeSessionsToChats([claudeSession({ lastTimestamp: null })])[0];
+    expect(chat.updatedAt).toBe('2026-08-20T10:00:00.000Z');
+  });
+});
+
+describe('mergeChatsSortedByRecent', () => {
+  it('sorts newest-first across both agents', () => {
+    const claude = claudeSessionsToChats([claudeSession({ lastTimestamp: '2026-08-18T00:00:00.000Z' })]);
+    const codex = codexSessionsToChats([codexSession({ lastTimestamp: '2026-08-22T00:00:00.000Z' })]);
+    const merged = mergeChatsSortedByRecent(claude, codex);
+    expect(merged[0].agent).toBe('codex');
+    expect(merged[1].agent).toBe('claude');
+  });
+});

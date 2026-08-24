@@ -1,0 +1,15 @@
+{
+  "directed": true,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {"id": "a_foo", "label": "Foo", "norm_label": "foo", "community": 0, "community_name": "src/a.ts", "file_type": "code", "source_file": "src/a.ts", "source_location": "L1", "_origin": "ast", "_callable": true},
+    {"id": "a_bar", "label": "Bar", "norm_label": "bar", "community": 0, "community_name": "src/a.ts", "file_type": "code", "source_file": "src/a.ts", "source_location": "L10", "_origin": "ast", "_callable": true},
+    {"id": "b_baz", "label": "Baz", "norm_label": "baz", "community": 1, "community_name": "src/b.ts", "file_type": "code", "source_file": "src/b.ts", "source_location": "L5", "_origin": "ast", "_callable": false}
+  ],
+  "links": [
+    {"source": "a_foo", "target": "a_bar", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "context": "call", "source_file": "src/a.ts", "source_location": "L2", "weight": 1.0},
+    {"source": "a_bar", "target": "b_baz", "relation": "calls", "confidence": "INFERRED", "confidence_score": 0.6, "context": "call", "source_file": "src/a.ts", "source_location": "L11", "weight": 0.6}
+  ],
+  "hyperedges": []
+}
