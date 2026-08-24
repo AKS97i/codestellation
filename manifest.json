@@ -1,9 +1,9 @@
 {
   "id": "codestellation",
   "name": "Codestellation",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "minAppVersion": "1.4.0",
-  "description": "An AI-powered command center for your coding projects, right inside your vault. Testing phase — expect breaking changes.",
+  "description": "An AI-powered command center for your coding projects, right inside your vault. Testing phase, expect breaking changes.",
   "author": "AKS",
   "isDesktopOnly": true
 }
