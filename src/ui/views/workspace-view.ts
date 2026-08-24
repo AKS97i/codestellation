@@ -13,6 +13,19 @@ import { renderChatsPanel } from '../workspace/chats-panel';
 import { renderWorklogPanel } from '../workspace/worklog-panel';
 import { claudeSessionsToChats, codexSessionsToChats, mergeChatsSortedByRecent } from '../../domain/chat-sessions';
 import { logger } from '../../core/logger';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+
+async function findNestedGitRepos(root: string): Promise<string[]> {
+  const entries = await fs.readdir(root, { withFileTypes: true }).catch(() => []);
+  const found: string[] = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const hasGit = await fs.stat(path.join(root, entry.name, '.git')).then(() => true).catch(() => false);
+    if (hasGit) found.push(entry.name);
+  }
+  return found;
+}
 
 const TABS = ['overview', 'chats', 'branches', 'graph', 'worklog'] as const;
 type Tab = (typeof TABS)[number];
@@ -106,6 +119,11 @@ export class WorkspaceView extends ItemView {
 
     const header = hubContent.createDiv({ cls: 'cs-hub-header' });
     header.createDiv({ cls: 'cs-hub-title', text: entry.name });
+
+    hubContent.createDiv({
+      cls: 'cs-wip-banner',
+      text: 'Work in progress. Codestellation is early and actively being built, some features here are minimal or still being wired up.',
+    });
 
     const tabBar = hubContent.createDiv({ cls: 'cs-tabs' });
     const tabButtons = new Map<Tab, HTMLElement>();
@@ -207,6 +225,22 @@ export class WorkspaceView extends ItemView {
 
   private async loadBranches(panel: HTMLElement, entry: RegistryEntry) {
     try {
+      const isRepo = await fs.stat(path.join(entry.path, '.git')).then(() => true).catch(() => false);
+      if (!isRepo) {
+        // real case hit during testing: a "project" folder (e.g. a client
+        // workspace with docs alongside the actual code) isn't itself a
+        // git repo — the repos are one level down. Name what was found
+        // instead of a generic failure, since there's nothing to retry here.
+        const nestedRepos = await findNestedGitRepos(entry.path);
+        panel.empty();
+        panel.createDiv({
+          cls: 'cs-empty',
+          text: nestedRepos.length > 0
+            ? `This folder isn't a git repo itself. Found ${nestedRepos.length} repo(s) inside it (${nestedRepos.join(', ')}). Per-subfolder branches aren't supported yet.`
+            : "This folder isn't a git repository (no .git found here or in its immediate subfolders).",
+        });
+        return;
+      }
       const branches = await listBranches(entry.path);
       renderBranchesPanel(panel, branches, { repoPath: entry.path });
     } catch (e) {

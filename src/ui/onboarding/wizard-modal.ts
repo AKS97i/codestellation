@@ -67,12 +67,18 @@ export class OnboardingWizardModal extends Modal {
   private graphifyChoices = new Map<string, boolean>(); // cwd -> generate?
   private exportMode: ExportMode = 'full';
 
-  /** @param startAt - skip straight to a later step, e.g. 'projects' for "add more projects" without re-asking name/detect. Defaults to the full sequence from the start. */
-  constructor(app: App, plugin: CodestellationPlugin, startAt: Step = 'name') {
+  private onFinished?: () => void;
+
+  /**
+   * @param startAt - skip straight to a later step, e.g. 'projects' for "add more projects" without re-asking name/detect. Defaults to the full sequence from the start.
+   * @param onFinished - called when the modal closes, however it closes (finished, cancelled, or dismissed) — the Home view uses this to refresh its planets, since a newly-imported project otherwise doesn't appear until the pane is reopened.
+   */
+  constructor(app: App, plugin: CodestellationPlugin, startAt: Step = 'name', onFinished?: () => void) {
     super(app);
     this.plugin = plugin;
     this.userName = plugin.settings.userName;
     this.stepIndex = STEP_ORDER.indexOf(startAt);
+    this.onFinished = onFinished;
   }
 
   async onOpen() {
@@ -85,6 +91,7 @@ export class OnboardingWizardModal extends Modal {
   }
 
   onClose() {
+    this.onFinished?.();
     this.contentEl.empty();
   }
 
@@ -266,9 +273,8 @@ export class OnboardingWizardModal extends Modal {
       new Setting(contentEl).addButton((btn) => btn.setButtonText('Next').setCta().onClick(guarded(async () => {
         // some selected projects may already have a graph even though graphify itself
         // isn't on PATH right now (e.g. it ran on another machine) — still worth exporting those
-        await this.runWithProgress('Setting things up…', (log) =>
-          this.exportGraphsIntoVault(selectedProjects.filter((p) => !this.graphifyNeeded.includes(p)), log)
-        );
+        const toExport = selectedProjects.filter((p) => !this.graphifyNeeded.includes(p));
+        await this.runWithProgress('Setting things up…', (log) => this.exportGraphsIntoVault(toExport, log), toExport.length);
         this.next();
       })));
       return;
@@ -277,8 +283,10 @@ export class OnboardingWizardModal extends Modal {
     if (this.graphifyNeeded.length === 0) {
       contentEl.createEl('p', { text: 'Every selected project already has a graphify graph — nothing to generate.' });
       new Setting(contentEl).addButton((btn) => btn.setButtonText('Next').setCta().onClick(guarded(async () => {
-        await this.runWithProgress('Exporting graphs into your vault…', (log) =>
-          this.exportGraphsIntoVault(selectedProjects, log)
+        await this.runWithProgress(
+          'Exporting graphs into your vault…',
+          (log) => this.exportGraphsIntoVault(selectedProjects, log),
+          selectedProjects.length
         );
         this.next();
       })));
@@ -329,7 +337,7 @@ export class OnboardingWizardModal extends Modal {
             }
           }
           await this.exportGraphsIntoVault(selectedProjects, log);
-        });
+        }, toGenerate.length + selectedProjects.length);
         this.next();
       }))
     );
@@ -343,27 +351,48 @@ export class OnboardingWizardModal extends Modal {
    * error line logged would get wiped out the moment the next step's
    * render cleared contentEl, making a failure look identical to success.
    */
-  private async runWithProgress(title: string, work: (log: (line: string) => void) => Promise<void>): Promise<void> {
+  /**
+   * `totalSteps`, when given, drives a live "N of M" counter in the
+   * header rather than a static title that never changes while the work
+   * runs — a multi-minute graphify build with no visible movement reads
+   * as hung, not "still working."
+   */
+  private async runWithProgress(title: string, work: (log: (line: string) => void) => Promise<void>, totalSteps?: number): Promise<void> {
     const { contentEl } = this;
     contentEl.empty();
     contentEl.createEl('h2', { text: 'Codestellation setup' });
-    const status = contentEl.createEl('p', { text: `⏳ ${title}` });
-    const list = contentEl.createEl('ul');
-    const log = (line: string) => { list.createEl('li', { text: line }); };
 
+    const progressCard = contentEl.createDiv({ cls: 'cs-progress-card' });
+    const statusRow = progressCard.createDiv({ cls: 'cs-progress-status' });
+    const spinner = statusRow.createDiv({ cls: 'cs-spinner' });
+    const status = statusRow.createSpan({ text: title });
+    const list = progressCard.createDiv({ cls: 'cs-progress-list' });
+
+    let completed = 0;
     let failed = false;
-    const wrappedLog = (line: string) => {
-      if (/^[⚠✗]/.test(line)) failed = true;
-      log(line);
+    const updateStatus = () => {
+      if (totalSteps && totalSteps > 0) status.setText(`${title} (${Math.min(completed, totalSteps)}/${totalSteps})`);
+    };
+    const log = (line: string) => {
+      const row = list.createDiv({ cls: 'cs-progress-row' });
+      const isDone = /^[✓]/.test(line);
+      const isWarn = /^[⚠✗]/.test(line);
+      row.addClass(isDone ? 'is-done' : isWarn ? 'is-warn' : 'is-info');
+      row.setText(line.replace(/^[✓⚠✗ℹ⏳]\s*/, ''));
+      if (isDone || isWarn) { completed++; updateStatus(); }
+      if (isWarn) failed = true;
     };
 
     try {
-      await work(wrappedLog);
+      await work(log);
     } catch (e) {
-      wrappedLog(`⚠ ${(e as Error).message ?? e}`);
+      log(`⚠ ${(e as Error).message ?? e}`);
     }
 
-    status.setText(failed ? '⚠ Finished with some errors, review before continuing:' : '✓ Done');
+    spinner.remove();
+    statusRow.addClass(failed ? 'is-warn' : 'is-done');
+    status.setText(failed ? 'Finished with some errors, review before continuing' : 'Done');
+
     await new Promise<void>((resolve) => {
       new Setting(contentEl).addButton((btn) =>
         btn.setButtonText('Continue').setCta().onClick(() => resolve())

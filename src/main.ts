@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf } from 'obsidian';
+import { Plugin, WorkspaceLeaf, Events } from 'obsidian';
 import { VIEW_TYPE_HOME, VIEW_TYPE_WORKSPACE } from './constants';
 import { HomeView } from './ui/views/home-view';
 import { WorkspaceView } from './ui/views/workspace-view';
@@ -28,7 +28,7 @@ export default class CodestellationPlugin extends Plugin {
     });
 
     this.addRibbonIcon('folder-plus', 'Codestellation: Import a project', () => {
-      new OnboardingWizardModal(this.app, this, 'projects').open();
+      new OnboardingWizardModal(this.app, this, 'projects', () => this.notifyProjectsChanged()).open();
     });
 
     this.addCommand({
@@ -40,7 +40,7 @@ export default class CodestellationPlugin extends Plugin {
     this.addCommand({
       id: 'run-onboarding',
       name: 'Run setup wizard',
-      callback: () => new OnboardingWizardModal(this.app, this).open(),
+      callback: () => new OnboardingWizardModal(this.app, this, 'name', () => this.notifyProjectsChanged()).open(),
     });
 
     this.addCommand({
@@ -50,7 +50,7 @@ export default class CodestellationPlugin extends Plugin {
       // "I closed the wizard by accident and there's no way back in without
       // redoing the whole thing": re-running the full sequence just to
       // import one more project was real friction, not just a missing exit
-      callback: () => new OnboardingWizardModal(this.app, this, 'projects').open(),
+      callback: () => new OnboardingWizardModal(this.app, this, 'projects', () => this.notifyProjectsChanged()).open(),
     });
 
     this.addCommand({
@@ -70,7 +70,9 @@ export default class CodestellationPlugin extends Plugin {
     if (!this.settings.onboardingComplete) {
       // deferred so the modal doesn't fight the workspace layout while
       // Obsidian is still restoring panes from the previous session
-      this.app.workspace.onLayoutReady(() => new OnboardingWizardModal(this.app, this).open());
+      this.app.workspace.onLayoutReady(() =>
+        new OnboardingWizardModal(this.app, this, 'name', () => this.notifyProjectsChanged()).open()
+      );
     }
 
     logger.info('loaded v0.1.0');
@@ -100,6 +102,22 @@ export default class CodestellationPlugin extends Plugin {
       await leaf.setViewState({ type: VIEW_TYPE_WORKSPACE, active: true, state: { projectId } });
     }
     workspace.revealLeaf(leaf);
+  }
+
+  /**
+   * Broadcasts that the project registry may have changed, so any open
+   * Home view can re-render its planets. Without this, importing a
+   * project while the Home pane is already open left it showing the
+   * stale set until the pane was closed and reopened — the registry
+   * write happened, the planet just never appeared.
+   *
+   * `codestellation:refresh-home` isn't one of Obsidian's built-in
+   * workspace events, so its typings don't have an overload for it —
+   * the cast is the standard, accepted way plugins send their own
+   * custom events over the same Workspace event bus.
+   */
+  notifyProjectsChanged() {
+    (this.app.workspace as unknown as Events).trigger('codestellation:refresh-home');
   }
 
   async loadSettings() {

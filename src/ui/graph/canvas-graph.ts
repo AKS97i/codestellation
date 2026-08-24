@@ -1,9 +1,16 @@
 import type { ParsedGraph } from '../../adapters/graphify/types';
 import { computeRadialLayout, type LayoutPoint } from './layout';
+import { hueFromId } from '../../core/hue';
 
-const NODE_RADIUS = 3;
-const HIGHLIGHT_RADIUS = 7;
+const NODE_RADIUS = 2.6;
+const HIGHLIGHT_RADIUS = 8;
 const HIGHLIGHT_DURATION_MS = 1400;
+
+/** Same hash-to-hue approach as the planet colors, so a project's graph and its planet feel like one visual system rather than two unrelated pieces of UI. Community index (not node id) is the hash input, so every node in a community reads as one visual cluster. */
+function communityColor(community: number | undefined, alpha: number): string {
+  const hue = hueFromId(String(community ?? 'none'));
+  return `hsla(${hue}, 70%, 68%, ${alpha})`;
+}
 
 interface HighlightState {
   nodeId: string;
@@ -36,6 +43,7 @@ export class CanvasGraph {
   private highlights: HighlightState[] = [];
   private rafId: number | null = null;
   private disposed = false;
+  private degreeCache: Map<string, number>;
 
   constructor(container: HTMLElement, graph: ParsedGraph) {
     this.graph = graph;
@@ -57,6 +65,15 @@ export class CanvasGraph {
     this.positions = layout.positions;
     this.renderedCount = layout.renderedCount;
     this.totalCount = layout.totalCount;
+
+    // node size communicates degree (how connected it is) — a purely
+    // cosmetic, one-time O(edges) pass, not a layout decision, so it
+    // doesn't interact with the truncation logic in layout.ts
+    this.degreeCache = new Map();
+    for (const edge of graph.edges) {
+      this.degreeCache.set(edge.source, (this.degreeCache.get(edge.source) ?? 0) + 1);
+      this.degreeCache.set(edge.target, (this.degreeCache.get(edge.target) ?? 0) + 1);
+    }
 
     this.bindInteraction();
     this.draw();
@@ -130,16 +147,29 @@ export class CanvasGraph {
   private draw() {
     const { ctx, canvas } = this;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // a faint radial vignette instead of flat black — same "deep space"
+    // language as the solar system, so the graph reads as part of one
+    // visual system instead of a bare debug canvas
+    const vignette = ctx.createRadialGradient(
+      canvas.width / 2, canvas.height / 2, 0,
+      canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) * 0.7
+    );
+    vignette.addColorStop(0, 'rgba(20,22,38,1)');
+    vignette.addColorStop(1, 'rgba(5,6,15,1)');
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
     ctx.save();
     ctx.translate(this.offsetX, this.offsetY);
     ctx.scale(this.scale, this.scale);
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-    ctx.lineWidth = 1 / this.scale;
+    ctx.lineWidth = 0.6 / this.scale;
     for (const edge of this.graph.edges) {
       const a = this.positions.get(edge.source);
       const b = this.positions.get(edge.target);
       if (!a || !b) continue;
+      ctx.strokeStyle = 'rgba(255,255,255,0.045)';
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
       ctx.lineTo(b.x, b.y);
@@ -147,14 +177,16 @@ export class CanvasGraph {
     }
 
     const highlightedIds = new Set(this.highlights.map((h) => h.nodeId));
-    ctx.fillStyle = 'rgba(224,71,44,0.85)';
     for (const node of this.graph.nodes) {
       const p = this.positions.get(node.id);
       if (!p) continue;
       if (highlightedIds.has(node.id)) continue; // drawn in the pass below, on top
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+
+      const degree = this.degreeCache.get(node.id) ?? 0;
+      const radius = (NODE_RADIUS + Math.min(degree, 12) * 0.35) / this.scale;
+      ctx.fillStyle = communityColor(node.community, 0.55);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, NODE_RADIUS / this.scale, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -164,10 +196,14 @@ export class CanvasGraph {
       if (!p) continue;
       const age = (now - h.startedAt) / HIGHLIGHT_DURATION_MS;
       const alpha = Math.max(0, 1 - age);
-      ctx.fillStyle = `rgba(224,71,44,${alpha})`;
+      const r = (HIGHLIGHT_RADIUS - age * 3) / this.scale;
+      ctx.fillStyle = `rgba(255,201,120,${alpha})`;
+      ctx.shadowColor = 'rgba(255,180,90,0.9)';
+      ctx.shadowBlur = 12 / this.scale;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, HIGHLIGHT_RADIUS / this.scale, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, Math.max(r, 1), 0, Math.PI * 2);
       ctx.fill();
+      ctx.shadowBlur = 0;
     }
 
     ctx.restore();

@@ -1,4 +1,4 @@
-import { ItemView, Notice, WorkspaceLeaf } from 'obsidian';
+import { ItemView, Notice, WorkspaceLeaf, Events } from 'obsidian';
 import { VIEW_TYPE_HOME } from '../../constants';
 import type CodestellationPlugin from '../../main';
 import { loadRegistry, type RegistryEntry } from '../../domain/project-registry';
@@ -35,6 +35,23 @@ export class HomeView extends ItemView {
   }
 
   async onOpen() {
+    // codestellation:refresh-home isn't a built-in Obsidian workspace
+    // event, so it's sent/received via a cast (see main.ts's
+    // notifyProjectsChanged) — this is what makes a project imported
+    // from the ribbon icon or command palette actually show up as a new
+    // planet without the user having to close and reopen this pane.
+    const eventBus = this.app.workspace as unknown as Events;
+    this.registerEvent(eventBus.on('codestellation:refresh-home', () => this.reload()));
+    await this.buildScene({ showGreetingAnim: true });
+  }
+
+  /** Re-renders in place after the project registry changes, skipping the greeting replay since the user is already looking at the pane. */
+  private async reload() {
+    this.teardown();
+    await this.buildScene({ showGreetingAnim: false });
+  }
+
+  private async buildScene({ showGreetingAnim }: { showGreetingAnim: boolean }) {
     const container = this.containerEl.children[1] as HTMLElement;
     container.empty();
     container.style.padding = '0'; // .cs-shell owns its own spacing; Obsidian's default view padding fights the pane-filling layout
@@ -44,6 +61,10 @@ export class HomeView extends ItemView {
     const shell = container.createDiv({ cls: 'cs-shell' });
     const topbar = shell.createDiv({ cls: 'cs-topbar' });
     topbar.createDiv({ cls: 'cs-topbar-title', text: 'Codestellation' });
+    const addBtn = topbar.createEl('button', { cls: 'cs-btn cs-btn-ghost cs-topbar-add', text: '+ Add project' });
+    addBtn.addEventListener('click', () =>
+      new OnboardingWizardModal(this.app, this.plugin, 'projects', () => this.reload()).open()
+    );
 
     const solarWrap = shell.createDiv({ cls: 'cs-solar-wrap' });
     const hubStage = shell.createDiv({ cls: 'cs-hub-stage' });
@@ -129,6 +150,11 @@ export class HomeView extends ItemView {
     });
     this.resizeObserver.observe(shell);
 
+    if (!showGreetingAnim) {
+      engine.start();
+      return;
+    }
+
     solarWrap.style.opacity = '0';
     this.disposeGreeting = showGreeting(shell, {
       name: this.plugin.settings.userName || 'there',
@@ -145,16 +171,24 @@ export class HomeView extends ItemView {
     empty.style.textAlign = 'center';
     empty.createEl('p', { text: 'No projects imported yet.' });
     const btn = empty.createEl('button', { cls: 'cs-btn cs-btn-primary', text: 'Import a project' });
-    btn.addEventListener('click', () => new OnboardingWizardModal(this.app, this.plugin, 'projects').open());
+    btn.addEventListener('click', () => new OnboardingWizardModal(this.app, this.plugin, 'projects', () => this.reload()).open());
   }
 
-  async onClose() {
+  private teardown() {
     // the orbit engine's rAF loop must be stopped here, or it keeps
     // ticking (and repositioning DOM nodes that no longer exist) even
-    // after the pane closes — exactly the kind of leak Phase 0/5 called
-    // out as a risk for a long-lived ambient animation
+    // after the scene is torn down — exactly the kind of leak Phase 0/5
+    // called out as a risk for a long-lived ambient animation
     this.engine?.stop();
     this.disposeGreeting?.();
     this.resizeObserver?.disconnect();
+    this.engine = null;
+    this.flight = null;
+    this.disposeGreeting = null;
+    this.resizeObserver = null;
+  }
+
+  async onClose() {
+    this.teardown();
   }
 }

@@ -196,7 +196,9 @@
    `.cs-topbar` comes BEFORE `.cs-hub-stage` in the DOM (with `.cs-solar-wrap`
    between them), so this needs `:has()` with the general sibling combinator,
    not `+`/`~` alone, which can only select *later* siblings. */
-.cs-topbar:has(~ .cs-hub-stage.is-active) .cs-topbar-title { opacity: 0; }
+.cs-topbar:has(~ .cs-hub-stage.is-active) .cs-topbar-title,
+.cs-topbar:has(~ .cs-hub-stage.is-active) .cs-topbar-add { opacity: 0; pointer-events: none; }
+.cs-topbar-add { transition: opacity var(--cs-dur-quick) ease; }
 
 .cs-solar-wrap {
   position: absolute;
@@ -258,7 +260,14 @@
 
 /* Once a planet lands, its hub is a workspace, not a scene — it gets a
    solid native surface (not the transparent space backdrop showing
-   through) plus native text/font so it reads as a real Obsidian panel. */
+   through) plus native text/font so it reads as a real Obsidian panel.
+   It's still a glass panel floating over the space backdrop rather than
+   a flat native rectangle, though: an elevated (not primary) background,
+   a soft outer shadow, and a 1px inner highlight along the top edge
+   (the standard "glass catching light" cue) keep it feeling like part of
+   this app's identity instead of a bare settings page, while every color
+   underneath is still a native token so it still adapts to the user's
+   theme and accent color. */
 .cs-hub-content {
   position: absolute;
   top: 96px;
@@ -267,11 +276,13 @@
   bottom: var(--cs-space-5);
   opacity: 0;
   overflow-y: auto;
-  background: var(--cs-chrome-bg);
+  background: var(--cs-chrome-bg-elevated);
   color: var(--cs-chrome-text);
   font-family: var(--cs-chrome-font);
   border-radius: var(--cs-chrome-radius-m);
   padding: var(--cs-space-5);
+  box-shadow: var(--cs-chrome-shadow-s), 0 24px 60px -20px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--cs-chrome-border);
   transition: opacity var(--cs-dur-base) ease;
 }
 .cs-hub-content.is-visible { opacity: 1; }
@@ -284,16 +295,48 @@
   align-items: center;
   margin-bottom: var(--cs-space-4);
 }
-.cs-hub-title { font-size: 1.2em; font-weight: 700; color: var(--cs-chrome-text); }
+.cs-wip-banner {
+  font-size: .78em;
+  color: var(--cs-chrome-text-muted);
+  background: var(--cs-chrome-bg-secondary);
+  border: 1px solid var(--cs-chrome-border);
+  border-left: 3px solid var(--cs-chrome-accent);
+  border-radius: var(--cs-chrome-radius-s);
+  padding: 8px 12px;
+  margin-bottom: var(--cs-space-4);
+}
+
+.cs-hub-title {
+  font-size: 1.35em;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  color: var(--cs-chrome-text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* small accent dot before the project name — a quiet brand touch that
+   also doubles as a "this project is live" indicator, cheaper than an
+   icon font and themeable via the same accent token as everything else */
+.cs-hub-title::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cs-chrome-accent);
+  box-shadow: 0 0 8px 1px var(--cs-chrome-accent);
+  flex-shrink: 0;
+}
 
 .cs-tabs {
   display: flex;
-  gap: var(--cs-space-1);
+  gap: 2px;
   background: var(--cs-chrome-bg-secondary);
   border-radius: var(--cs-chrome-radius-s);
   padding: 4px;
   width: fit-content;
   margin-bottom: var(--cs-space-4);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
 .cs-tab-panel { display: none; }
@@ -444,36 +487,72 @@
   cursor: pointer;
   transition: background var(--cs-dur-quick) ease, box-shadow var(--cs-dur-quick) ease, transform var(--cs-dur-quick) ease;
 }
-.cs-btn-primary { background: var(--cs-chrome-accent); color: var(--cs-chrome-text-on-accent); }
-.cs-btn-primary:hover { background: var(--cs-chrome-accent-hover); }
+.cs-btn-primary {
+  background: linear-gradient(155deg, color-mix(in srgb, var(--cs-chrome-accent) 100%, white 18%), var(--cs-chrome-accent));
+  color: var(--cs-chrome-text-on-accent);
+  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--cs-chrome-accent) 70%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.cs-btn-primary:hover { box-shadow: 0 8px 22px -6px color-mix(in srgb, var(--cs-chrome-accent) 85%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.25); transform: translateY(-1px); }
 .cs-btn-ghost { background: var(--cs-chrome-bg-secondary); color: var(--cs-chrome-text); border: 1px solid var(--cs-chrome-border); }
 .cs-btn-ghost:hover { background: var(--cs-chrome-bg-hover); border-color: var(--cs-chrome-border-hover); }
 .cs-btn:active { transform: scale(.97); }
 
 .cs-stat {
+  position: relative;
   background: var(--cs-chrome-bg-secondary);
   border: 1px solid var(--cs-chrome-border);
   border-radius: var(--cs-chrome-radius-m);
-  padding: var(--cs-space-3) var(--cs-space-4);
-  transition: border-color var(--cs-dur-quick) ease;
+  padding: var(--cs-space-3) var(--cs-space-4) var(--cs-space-3) calc(var(--cs-space-4) + 3px);
+  overflow: hidden;
+  transition: border-color var(--cs-dur-quick) ease, transform var(--cs-dur-quick) ease;
 }
-.cs-stat:hover { border-color: var(--cs-chrome-border-hover); }
+/* a thin accent rail on the left, the same "this is Codestellation" cue
+   the hub title's dot gives — a stat tile otherwise has no color at all */
+.cs-stat::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--cs-chrome-accent);
+  opacity: 0.7;
+}
+.cs-stat:hover { border-color: var(--cs-chrome-border-hover); transform: translateY(-1px); }
 .cs-stat-label { font-size: .68em; color: var(--cs-chrome-text-faint); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
-.cs-stat-value { font-size: 1.3em; font-weight: 800; margin-top: 2px; color: var(--cs-chrome-text); font-family: var(--cs-chrome-font-mono); }
+.cs-stat-value { font-size: 1.4em; font-weight: 800; margin-top: 3px; color: var(--cs-chrome-text); font-family: var(--cs-chrome-font-mono); }
 
-.cs-tab { background: transparent; border: none; color: var(--cs-chrome-text-muted); padding: 7px 14px; border-radius: 7px; font-size: .82em; font-family: var(--cs-chrome-font); cursor: pointer; transition: background var(--cs-dur-quick) ease, color var(--cs-dur-quick) ease; }
+.cs-tab { background: transparent; border: none; color: var(--cs-chrome-text-muted); padding: 7px 16px; border-radius: 6px; font-size: .82em; font-weight: 600; font-family: var(--cs-chrome-font); cursor: pointer; transition: background var(--cs-dur-quick) ease, color var(--cs-dur-quick) ease, box-shadow var(--cs-dur-quick) ease; }
 .cs-tab:hover { background: var(--cs-chrome-bg-hover); color: var(--cs-chrome-text); }
-.cs-tab.is-active { background: var(--cs-chrome-bg-elevated); color: var(--cs-chrome-text); font-weight: 600; }
+.cs-tab.is-active {
+  background: linear-gradient(155deg, color-mix(in srgb, var(--cs-chrome-accent) 100%, white 18%), var(--cs-chrome-accent));
+  color: var(--cs-chrome-text-on-accent);
+  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--cs-chrome-accent) 60%, transparent);
+}
 
 .cs-filter { background: var(--cs-chrome-bg-secondary); border: 1px solid var(--cs-chrome-border); color: var(--cs-chrome-text-muted); border-radius: var(--cs-chrome-radius-s); padding: 5px 12px; font-size: .78em; cursor: pointer; transition: background var(--cs-dur-quick) ease, color var(--cs-dur-quick) ease; }
 .cs-filter:hover { background: var(--cs-chrome-bg-hover); }
 .cs-filter.is-active { background: var(--cs-chrome-accent); color: var(--cs-chrome-text-on-accent); border-color: transparent; }
 
-.cs-chat-row { background: var(--cs-chrome-bg-secondary); border: 1px solid var(--cs-chrome-border); border-radius: var(--cs-chrome-radius-m); padding: 11px 14px; cursor: pointer; transition: background var(--cs-dur-quick) ease, border-color var(--cs-dur-quick) ease; }
+.cs-chat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cs-space-3);
+  background: var(--cs-chrome-bg-secondary);
+  border: 1px solid var(--cs-chrome-border);
+  border-radius: var(--cs-chrome-radius-m);
+  padding: 11px 14px;
+  transition: background var(--cs-dur-quick) ease, border-color var(--cs-dur-quick) ease;
+}
 .cs-chat-row:hover { background: var(--cs-chrome-bg-hover); border-color: var(--cs-chrome-accent); }
-.cs-chat-title { font-size: .88em; color: var(--cs-chrome-text); }
+.cs-chat-row-main { min-width: 0; }
+.cs-chat-row-side { display: flex; align-items: center; gap: var(--cs-space-2); flex-shrink: 0; }
+.cs-chat-title { font-size: .88em; color: var(--cs-chrome-text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cs-chat-meta { font-size: .72em; color: var(--cs-chrome-text-faint); margin-top: 2px; }
-.cs-badge { font-size: .62em; padding: 2px 6px; border-radius: 5px; margin-left: 4px; background: var(--cs-chrome-bg-elevated); color: var(--cs-chrome-text-muted); }
+.cs-badge { font-size: .62em; padding: 3px 7px; border-radius: 5px; background: var(--cs-chrome-bg-elevated); color: var(--cs-chrome-text-muted); text-transform: uppercase; letter-spacing: .03em; font-weight: 700; }
+.cs-badge-claude { background: color-mix(in srgb, var(--cs-chrome-accent) 22%, transparent); color: var(--cs-chrome-accent); }
+.cs-badge-codex { background: color-mix(in srgb, #6ec3ff 22%, transparent); color: #6ec3ff; }
+
+.cs-chat-pager { display: flex; align-items: center; justify-content: center; gap: var(--cs-space-3); margin-top: var(--cs-space-3); }
 
 .cs-branch-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; font-size: .82em; color: var(--cs-chrome-text); border-radius: var(--cs-chrome-radius-s); transition: background var(--cs-dur-quick) ease; }
 .cs-branch-row:hover { background: var(--cs-chrome-bg-hover); }
@@ -516,6 +595,53 @@
 .cs-weekday-prompt-text { font-size: .85em; }
 
 .cs-empty { color: var(--cs-chrome-text-faint); font-size: .85em; padding: var(--cs-space-4); }
+
+/* Onboarding progress — modal content, so it doesn't sit inside .cs-shell,
+   but the --cs-chrome-* tokens are defined on :root so they still work
+   here for free, keeping the wizard visually consistent with the rest of
+   the app instead of looking like a bare native list. */
+.cs-progress-card {
+  background: var(--cs-chrome-bg-secondary);
+  border: 1px solid var(--cs-chrome-border);
+  border-radius: var(--cs-chrome-radius-m);
+  padding: var(--cs-space-4);
+}
+.cs-progress-status {
+  display: flex;
+  align-items: center;
+  gap: var(--cs-space-3);
+  font-weight: 600;
+  color: var(--cs-chrome-text);
+  margin-bottom: var(--cs-space-3);
+  font-variant-numeric: tabular-nums;
+}
+.cs-progress-status.is-done { color: var(--cs-added); }
+.cs-progress-status.is-warn { color: var(--cs-removed); }
+.cs-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--cs-chrome-border);
+  border-top-color: var(--cs-chrome-accent);
+  animation: cs-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes cs-spin { to { transform: rotate(360deg); } }
+.cs-progress-list { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
+.cs-progress-row {
+  font-size: .82em;
+  padding: 6px 10px;
+  border-radius: var(--cs-chrome-radius-s);
+  color: var(--cs-chrome-text-muted);
+}
+.cs-progress-row.is-done { color: var(--cs-chrome-text); }
+.cs-progress-row.is-done::before { content: '✓ '; color: var(--cs-added); font-weight: 700; }
+.cs-progress-row.is-warn { color: var(--cs-chrome-text); background: color-mix(in srgb, var(--cs-removed) 12%, transparent); }
+.cs-progress-row.is-warn::before { content: '⚠ '; }
+.cs-progress-row.is-info { color: var(--cs-chrome-text-faint); }
+@media (prefers-reduced-motion: reduce) {
+  .cs-spinner { animation: none; border-top-color: var(--cs-chrome-border); }
+}
 .cs-date-input {
   background: var(--cs-chrome-bg-secondary);
   border: 1px solid var(--cs-chrome-border);

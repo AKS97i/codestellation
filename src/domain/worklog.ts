@@ -41,6 +41,14 @@ export interface WorklogResult {
   generatedByAi: boolean;
 }
 
+// Shelling out to `claude -p` from inside Obsidian's child-process
+// environment triggered an interactive permission prompt that the plugin
+// has no way to answer (Obsidian isn't a terminal), which just hangs.
+// Disabled until that's root-caused rather than shipping a beta with a
+// feature that can silently freeze. The mechanical fallback below still
+// gives a real, useful work log in the meantime.
+const AI_SUMMARY_ENABLED = false;
+
 /**
  * Runs the actual generation. Falls back to a plain commit-list summary
  * (generatedByAi: false) rather than failing outright when the Claude CLI
@@ -48,6 +56,9 @@ export interface WorklogResult {
  * summary is still useful; a blank one isn't.
  */
 export async function generateWorklogSummary(inputs: WorklogInputs): Promise<WorklogResult> {
+  if (!AI_SUMMARY_ENABLED) {
+    return { summary: mechanicalFallback(inputs), generatedByAi: false };
+  }
   const bin = await resolveClaudeCliBin();
   if (!bin) {
     return { summary: mechanicalFallback(inputs), generatedByAi: false };

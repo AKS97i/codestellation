@@ -54,7 +54,7 @@ export function renderWorklogPanel(container: HTMLElement, vault: Vault, entry: 
         timeSpentHoursEstimate: stats.timeSpentHoursEstimate,
       });
 
-      const header = `${entry.name}, ${date}\n${stats.sessionCount} session(s) · ${stats.totalTokens.toLocaleString()} tokens · ~${stats.timeSpentHoursEstimate.toFixed(1)}h\n${result.generatedByAi ? '' : '(mechanical summary, Claude CLI unavailable)\n'}\n`;
+      const header = `${entry.name}, ${date}\n${stats.sessionCount} session(s) · ${stats.totalTokens.toLocaleString()} tokens · ~${stats.timeSpentHoursEstimate.toFixed(1)}h\n${result.generatedByAi ? '' : '(plain commit list for now, AI-written summaries are still being worked on)\n'}\n`;
       out.setText(header + result.summary);
 
       const notePath = `${VAULT_PROJECTS_FOLDER}/${entry.id}/worklogs/${date}.md`;
