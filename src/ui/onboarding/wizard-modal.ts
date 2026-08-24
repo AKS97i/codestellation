@@ -11,6 +11,7 @@ import { hueFromId, hueToHex, hexToHue } from '../../core/hue';
 import { parseGraphJson } from '../../adapters/graphify/graph-json';
 import { filterToTopCommunities } from '../../adapters/graphify/filter';
 import { recolorCanvasGroups } from '../../adapters/graphify/canvas';
+import { ensureGraphifyOutIgnored } from '../../adapters/git/gitignore';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
@@ -320,6 +321,7 @@ export class OnboardingWizardModal extends Modal {
             log(`⏳ Generating graph for ${project.name}… this can take a while`);
             try {
               await run(graphifyBin, [project.cwd, '--no-viz'], { timeoutMs: 10 * 60 * 1000 });
+              await ensureGraphifyOutIgnored(project.cwd);
               log(`✓ Graph generated for ${project.name}`);
             } catch (e) {
               const message = (e as Error).message ?? String(e);
@@ -331,6 +333,7 @@ export class OnboardingWizardModal extends Modal {
                 log(`ℹ No LLM API key configured, retrying ${project.name} as code-only (skips docs/images, needs no key)`);
                 try {
                   await run(graphifyBin, [project.cwd, '--no-viz', '--code-only'], { timeoutMs: 10 * 60 * 1000 });
+                  await ensureGraphifyOutIgnored(project.cwd);
                   log(`✓ Graph generated for ${project.name} (code-only)`);
                   continue;
                 } catch (e2) {
@@ -431,6 +434,9 @@ export class OnboardingWizardModal extends Modal {
       if (nodeCount !== null && nodeCount > LARGE_GRAPH_NODE_THRESHOLD) {
         log?.(`ℹ ${project.name}'s graph has ${nodeCount.toLocaleString()} nodes, using the "${this.exportMode}" export you selected.`);
       }
+      // covers graphs that already existed before this import (e.g. built
+      // on another machine) too, not just ones Codestellation just generated
+      await ensureGraphifyOutIgnored(project.cwd);
 
       const graphFolder = `${vaultBasePath}/${VAULT_PROJECTS_FOLDER}/${entry.id}/graph`;
       log?.(`⏳ Exporting graph for ${project.name} into the vault…`);

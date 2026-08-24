@@ -84,6 +84,7 @@ session history and git repos. Not a mockup.
   Unix conventions where avoidable, but nobody has confirmed Claude Code
   and Codex use the same `~/.claude` / `~/.codex` locations on Windows, or
   that graphify ships a Windows build at all.
+- **graphify writes into your project folder, not just the vault.** Running graphify creates `<project>/graphify-out/` in your actual codebase (graphify's own behavior, no flag to redirect it, and it needs to stay there for graphify's own incremental caching). Codestellation automatically adds `graphify-out/` to that project's `.gitignore` if it's a git repo, so it won't get committed, but the folder itself does live in your project directory.
 - **No caching layer.** Every workspace open re-scans every session file
   on disk from scratch. Fine at the scale tested during development
   (dozens of sessions); would need real caching before hundreds.
