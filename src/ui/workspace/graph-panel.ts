@@ -1,5 +1,6 @@
-import { App, TFile } from 'obsidian';
+import { App, TFile, FileSystemAdapter } from 'obsidian';
 import * as path from 'node:path';
+import * as fs from 'node:fs/promises';
 import { parseGraphJson } from '../../adapters/graphify/graph-json';
 import type { RegistryEntry } from '../../domain/project-registry';
 import { CanvasGraph } from '../graph/canvas-graph';
@@ -61,7 +62,20 @@ export async function renderGraphPanel(container: HTMLElement, app: App, entry: 
   liveCanvasHost.style.position = 'relative';
 
   try {
-    const graph = await parseGraphJson(path.join(entry.path, 'graphify-out', 'graph.json'));
+    // prefer the copy in the vault — that's the actual source of truth
+    // per the user's own decision that graphify output should live in
+    // the vault, not just be re-derived from the project folder every
+    // time — falling back to the project folder only for projects
+    // imported before that copy step existed
+    const adapter = app.vault.adapter;
+    const vaultGraphJsonPath = adapter instanceof FileSystemAdapter
+      ? path.join(adapter.getBasePath(), graphPath.replace(/graph\.canvas$/, 'graph.json'))
+      : null;
+    const graphJsonPath = vaultGraphJsonPath && (await fs.stat(vaultGraphJsonPath).then(() => true).catch(() => false))
+      ? vaultGraphJsonPath
+      : path.join(entry.path, 'graphify-out', 'graph.json');
+
+    const graph = await parseGraphJson(graphJsonPath);
     const canvasGraph = new CanvasGraph(liveCanvasHost, graph);
     const stats = canvasGraph.getRenderStats();
     meta.setText(

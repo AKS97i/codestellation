@@ -160,7 +160,7 @@ export class WorkspaceView extends ItemView {
 
     await Promise.all([
       this.loadOverview(panels.get('overview')!, entry, claudeSessions, codexSessions),
-      this.loadChats(panels.get('chats')!, claudeSessions, codexSessions),
+      this.loadChats(panels.get('chats')!, entry, claudeSessions, codexSessions),
       this.loadBranches(panels.get('branches')!, entry),
       this.loadGraph(panels.get('graph')!, entry),
       this.loadWorklog(panels.get('worklog')!, entry),
@@ -210,12 +210,13 @@ export class WorkspaceView extends ItemView {
 
   private async loadChats(
     panel: HTMLElement,
+    entry: RegistryEntry,
     claudeSessions: Awaited<ReturnType<typeof discoverClaudeCodeProjects>>[number]['sessions'],
     codexSessions: Awaited<ReturnType<typeof discoverCodexProjects>>[number]['sessions']
   ) {
     try {
       const chats = mergeChatsSortedByRecent(claudeSessionsToChats(claudeSessions), codexSessionsToChats(codexSessions));
-      renderChatsPanel(panel, chats);
+      renderChatsPanel(panel, chats, entry.path);
     } catch (e) {
       logger.error('failed to load chats', e);
       panel.empty();

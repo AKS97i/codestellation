@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { claudeSessionsToChats, codexSessionsToChats, mergeChatsSortedByRecent } from './chat-sessions';
+import { claudeSessionsToChats, codexSessionsToChats, mergeChatsSortedByRecent, startSessionWithGraphifyCommand } from './chat-sessions';
 import type { ParsedSession } from '../adapters/claude-code/types';
 import type { ParsedCodexSession } from '../adapters/codex/types';
 
@@ -61,5 +61,14 @@ describe('mergeChatsSortedByRecent', () => {
     const merged = mergeChatsSortedByRecent(claude, codex);
     expect(merged[0].agent).toBe('codex');
     expect(merged[1].agent).toBe('claude');
+  });
+});
+
+describe('startSessionWithGraphifyCommand', () => {
+  it('cds into the project path and starts claude with a graphify-aware system prompt', () => {
+    const cmd = startSessionWithGraphifyCommand('/Users/aks/Frag/Acme');
+    expect(cmd).toContain('cd "/Users/aks/Frag/Acme"');
+    expect(cmd).toContain('claude --append-system-prompt');
+    expect(cmd).toContain('graphify');
   });
 });

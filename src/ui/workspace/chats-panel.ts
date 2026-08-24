@@ -1,6 +1,6 @@
 import { Notice } from 'obsidian';
 import type { ChatSession } from '../../types';
-import { claudeResumeCommand, codexResumeHint } from '../../domain/chat-sessions';
+import { claudeResumeCommand, codexResumeHint, startSessionWithGraphifyCommand } from '../../domain/chat-sessions';
 
 type AgentFilter = 'all' | 'claude' | 'codex';
 
@@ -34,11 +34,16 @@ async function copyToClipboard(text: string): Promise<void> {
  * rendering all of them as DOM rows at once is both slow and makes the
  * list impossible to scan.
  */
-export function renderChatsPanel(container: HTMLElement, sessions: ChatSession[]) {
+export function renderChatsPanel(container: HTMLElement, sessions: ChatSession[], projectPath: string) {
   container.empty();
 
   let filter: AgentFilter = 'all';
   let page = 0;
+
+  const startRow = container.createDiv({ cls: 'cs-filter-row' });
+  const startBtn = startRow.createEl('button', { cls: 'cs-btn cs-btn-primary', text: 'Start new session here' });
+  startBtn.addEventListener('click', () => copyToClipboard(startSessionWithGraphifyCommand(projectPath)));
+  startRow.createSpan({ cls: 'cs-chat-meta', text: 'Copies a terminal command that cds into the project and starts Claude with a graphify reminder.' });
 
   const filterRow = container.createDiv({ cls: 'cs-filter-row' });
   const list = container.createDiv({ cls: 'cs-chat-list' });

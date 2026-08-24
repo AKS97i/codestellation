@@ -462,6 +462,18 @@ export class OnboardingWizardModal extends Modal {
         const canvasFsPath = `${vaultBasePath}/${entry.graphPath}`;
         await recolorCanvasGroups(canvasFsPath, hueToHex(entry.hue));
 
+        // the .md notes/canvas above are graphify's OWN transformation of
+        // the graph for Obsidian; this is the raw graph.json itself (or
+        // the lite-filtered version, if that's what was exported) so the
+        // vault holds the actual source data, not just a derived view —
+        // this is what the live canvas graph (Phase 9) and diagnostics
+        // read, and it means the vault copy is the same data used to
+        // build everything else, not a second, potentially-divergent one
+        const rawGraphSource = graphOverridePath ?? path.join(project.cwd, 'graphify-out', 'graph.json');
+        await fs.copyFile(rawGraphSource, `${graphFolder}/graph.json`).catch((e) => {
+          log?.(`⚠ Couldn't copy graph.json into the vault for ${project.name}: ${(e as Error).message}`);
+        });
+
         log?.(`✓ Exported graph for ${project.name}`);
       } catch (e) {
         log?.(`⚠ Couldn't export the graph for ${project.name}: ${(e as Error).message}`);
