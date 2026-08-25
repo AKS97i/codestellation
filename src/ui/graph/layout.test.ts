@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeRadialLayout } from './layout';
+import { compactCommunityLabel, computeRadialLayout } from './layout';
 import type { GraphNode } from '../../adapters/graphify/types';
 
 function node(id: string, community: number): GraphNode {
@@ -13,6 +13,8 @@ describe('computeRadialLayout', () => {
     expect(result.renderedCount).toBe(3);
     expect(result.totalCount).toBe(3);
     expect(result.positions.size).toBe(3);
+    expect(result.communities).toHaveLength(2);
+    expect(result.communities.every((community) => community.radius > 0)).toBe(true);
   });
 
   it('caps rendered nodes and reports the true total when over the cap', () => {
@@ -42,5 +44,16 @@ describe('computeRadialLayout', () => {
     const result = computeRadialLayout(nodes, { width: 400, height: 400, maxNodes: 5 });
     expect(result.positions.has('small0')).toBe(true);
     expect(result.positions.has('big0')).toBe(false);
+  });
+});
+
+describe('compactCommunityLabel', () => {
+  it('turns long generated community names into short readable labels', () => {
+    expect(compactCommunityLabel('SetupSubscriptionStepsJsonInstituteController')).toBe('Setup Subscription…');
+    expect(compactCommunityLabel('src/controllers/PaymentsController.ts')).toBe('Payments Controller');
+  });
+
+  it('keeps already concise names intact', () => {
+    expect(compactCommunityLabel('RootState')).toBe('Root State');
   });
 });

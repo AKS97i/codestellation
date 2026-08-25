@@ -270,8 +270,22 @@ export class OnboardingWizardModal extends Modal {
       copyBtn.style.marginLeft = '8px';
       copyBtn.addEventListener('click', async () => {
         await navigator.clipboard.writeText(GRAPHIFY_INSTALL_CMD);
-        new Notice('Copied. Run it, then reopen this wizard.');
+        new Notice('Copied. Run it, then use Re-detect here.');
       });
+      const redetectBtn = contentEl.createEl('button', { cls: 'cs-btn cs-btn-primary', text: 'Re-detect Graphify' });
+      redetectBtn.addEventListener('click', guarded(async () => {
+        redetectBtn.disabled = true;
+        redetectBtn.setText('Checking…');
+        const refreshed = await detectGraphify({ forceRefresh: true });
+        if (refreshed.installed) {
+          new Notice(`Graphify detected${refreshed.version ? ` (v${refreshed.version})` : ''}.`);
+          this.render();
+          return;
+        }
+        redetectBtn.disabled = false;
+        redetectBtn.setText('Re-detect Graphify');
+        new Notice('Graphify is still not visible to Obsidian. Check Diagnostics for searched paths.');
+      }));
       if (process.platform === 'win32') {
         contentEl.createEl('p', {
           cls: 'setting-item-description',

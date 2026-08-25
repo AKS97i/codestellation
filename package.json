@@ -1,6 +1,6 @@
 {
   "name": "codestellation",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "An AI-powered command center for your coding projects, right inside your Obsidian vault.",
   "private": true,
   "type": "module",
@@ -13,8 +13,10 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/three": "^0.185.4",
     "esbuild": "^0.24.0",
     "obsidian": "latest",
+    "three": "^0.185.1",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"
   }

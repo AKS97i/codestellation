@@ -8,6 +8,11 @@ export interface RegistryEntry {
   hue: number;
   graphPath: string | null; // vault-relative, e.g. "Codestellation/projects/<slug>/graph" — null until graphify has run
   importedAt: string; // ISO 8601
+  planetScale?: number; // user override applied on top of graph-size-driven radius
+  hasLife?: boolean; // explicit living-world choice; undefined uses the deterministic default
+  hidden?: boolean; // hidden from the home solar system without removing the registry entry
+  showBranchMoons?: boolean; // project-local preference for local/shared branch moons
+  showBranchSatellites?: boolean; // project-local preference for remote-only branch satellites
 }
 
 const REGISTRY_PATH = 'Codestellation/_data/projects.json';
@@ -61,6 +66,8 @@ export function addImportedProject(existing: RegistryEntry[], { name, path, hue 
     hue: hue ?? hueFromId(slug), // user-picked color during onboarding wins over the hash default
     graphPath: null,
     importedAt: new Date().toISOString(),
+    showBranchMoons: true,
+    showBranchSatellites: true,
   };
   return [...existing, entry];
 }

@@ -22,6 +22,16 @@ session history and git repos. Not a mockup.
    `<your-vault>/.obsidian/plugins/codestellation/`.
 3. Enable the plugin in Obsidian's Community Plugins settings.
 
+## Updating to a new version
+
+**If you installed via BRAT:** BRAT doesn't update automatically. Either:
+- Open the command palette (Cmd/Ctrl+P) and run **"Check for updates to all beta plugins now"**, then reload Obsidian (or disable/re-enable Codestellation) so the new build actually loads, or
+- Turn on **"Auto-update plugins at startup"** in BRAT's settings, so every full Obsidian restart pulls the latest release automatically.
+
+**If you installed manually:** download the new `main.js`, `manifest.json`, `styles.css` from the [latest release](https://github.com/AKS97i/codestellation/releases/latest) and overwrite the same three files in `<your-vault>/.obsidian/plugins/codestellation/`, then reload Obsidian.
+
+Either way, check Settings → Community Plugins → Codestellation afterward — the version number shown there should match the release you just installed.
+
 ## What it actually does right now
 
 - **Onboarding**: detects local Claude Code / Codex session history, finds

@@ -6,7 +6,7 @@ import { aggregateProjectStats } from '../../domain/session-aggregator';
 import { discoverClaudeCodeProjects } from '../../adapters/claude-code/discover';
 import { discoverCodexProjects } from '../../adapters/codex/discover';
 import { loadCodexSessionTitles } from '../../adapters/codex/session-index';
-import { listBranches } from '../../adapters/git/branches';
+import { listBranches, listProjectBranches } from '../../adapters/git/branches';
 import { renderOverviewPanel } from '../workspace/overview-panel';
 import { renderBranchesPanel } from '../workspace/branches-panel';
 import { renderGraphPanel } from '../workspace/graph-panel';
@@ -14,8 +14,12 @@ import { renderChatsPanel } from '../workspace/chats-panel';
 import { renderWorklogPanel } from '../workspace/worklog-panel';
 import { claudeSessionsToChats, codexSessionsToChats, mergeChatsSortedByRecent } from '../../domain/chat-sessions';
 import { logger } from '../../core/logger';
+import { HelpModal } from '../help-modal';
+import { GuideTour } from '../guide/guide-tour';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { applyCodestellationAppearance } from '../appearance';
+
 
 async function findNestedGitRepos(root: string): Promise<string[]> {
   const entries = await fs.readdir(root, { withFileTypes: true }).catch(() => []);
@@ -113,6 +117,7 @@ export class WorkspaceView extends ItemView {
     }
 
     const shell = container.createDiv({ cls: 'cs-shell cs-workspace-shell' });
+    applyCodestellationAppearance(shell, this.plugin.settings);
     const hubContent = shell.createDiv({ cls: 'cs-hub-content cs-workspace-content is-visible' });
     hubContent.style.position = 'static';
     hubContent.style.width = '100%';
@@ -120,10 +125,11 @@ export class WorkspaceView extends ItemView {
 
     const header = hubContent.createDiv({ cls: 'cs-hub-header' });
     header.createDiv({ cls: 'cs-hub-title', text: entry.name });
+    const helpBtn = header.createEl('button', { cls: 'cs-btn cs-btn-ghost', text: '? Help' });
 
     hubContent.createDiv({
       cls: 'cs-wip-banner',
-      text: 'Work in progress. Codestellation is early and actively being built, some features here are minimal or still being wired up.',
+      text: 'Preview build · Codestellation is evolving in small steps. Expect occasional breakage and unfinished behavior.',
     });
 
     const tabBar = hubContent.createDiv({ cls: 'cs-tabs' });
@@ -139,6 +145,55 @@ export class WorkspaceView extends ItemView {
       const panel = hubContent.createDiv({ cls: `cs-tab-panel${tab === this.activeTab ? ' is-active' : ''}` });
       panels.set(tab, panel);
     }
+
+    // built here (not a module-level constant) so each step's onEnter can
+    // actually switch tabs via the closures above — a tour that only
+    // covered whatever tab happened to be open already wouldn't be much
+    // of a tour, since four of the five tabs are `display: none` until
+    // clicked
+    const workspaceTourSteps = [
+      {
+        selector: '.cs-hub-title',
+        title: 'Your project workspace',
+        body: `Everything here is scoped to ${entry.name} specifically: real sessions, real git branches, real tokens used. Nothing on this page is a mockup.`,
+      },
+      {
+        selector: '.cs-wip-banner',
+        title: 'Still v0.1',
+        body: 'Some of what follows is fully built, some is a deliberate stand-in for something not finished yet — this tour calls that out tab by tab rather than hiding it.',
+      },
+      {
+        selector: '.cs-tabs',
+        onEnter: () => this.switchTab('overview', tabButtons, panels),
+        title: 'Overview',
+        body: 'Session count, tokens used (with a per-model breakdown), an estimated time-spent figure, and branch count — all computed fresh from disk each time you open this tab, not cached.',
+      },
+      {
+        selector: '.cs-tabs',
+        onEnter: () => this.switchTab('chats', tabButtons, panels),
+        title: 'Chats',
+        body: 'Every Claude/Codex session found for this project, with real titles where available. "Copy resume command" hands off to your terminal — Obsidian can\'t embed an interactive chat. "Start new session here" copies a command that reminds Claude to use graphify instead of reading files raw.',
+      },
+      {
+        selector: '.cs-tabs',
+        onEnter: () => this.switchTab('branches', tabButtons, panels),
+        title: 'Branches',
+        body: 'Local/remote/both, with stale branches (30+ days) flagged. Pick two branches to compare: unique commits per side, plus a file-level diff. Projects that bundle multiple repos in one folder show each repo\'s branches separately.',
+      },
+      {
+        selector: '.cs-tabs',
+        onEnter: () => this.switchTab('graph', tabButtons, panels),
+        title: 'Graph',
+        body: 'If a graphify graph exists, this renders it as a live, pannable canvas — editing a file in an active Claude Code session for this project highlights its node here within a few seconds. If no graph exists yet, you can generate one right from this tab.',
+      },
+      {
+        selector: '.cs-tabs',
+        onEnter: () => this.switchTab('worklog', tabButtons, panels),
+        title: 'Work Log',
+        body: 'Pick a date, get real commits and session stats for that day. AI-written summaries are currently disabled (a permission-prompt bug when calling out to Claude from inside Obsidian) — you get a plain commit list instead for now.',
+      },
+    ];
+    helpBtn.addEventListener('click', () => new HelpModal(this.app, () => new GuideTour(shell, workspaceTourSteps).start()).open());
 
     // fetch everything up front so switching tabs afterward is instant —
     // these are real filesystem/git scans (see the file-level note below),
@@ -199,7 +254,7 @@ export class WorkspaceView extends ItemView {
     codexSessions: Awaited<ReturnType<typeof discoverCodexProjects>>[number]['sessions']
   ) {
     try {
-      const branches = await listBranches(entry.path).catch(() => []);
+      const branches = await listProjectBranches(entry.path).catch(() => []);
       const stats = aggregateProjectStats(claudeSessions, codexSessions);
       renderOverviewPanel(panel, { entry, stats, branchCount: branches.length });
     } catch (e) {

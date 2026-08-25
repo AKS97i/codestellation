@@ -47,10 +47,20 @@ export interface CodestellationSettings {
   userName: string;
   checkInTargetHours: number;
   onboardingComplete: boolean;
+  interfaceFont: 'obsidian' | 'system' | 'serif' | 'mono';
+  galaxyAccentHue: number;
+  sceneIntensity: 'minimal' | 'calm' | 'cinematic';
+  showBranchMoons: boolean;
+  showBranchSatellites: boolean;
 }
 
 export const DEFAULT_SETTINGS: CodestellationSettings = {
   userName: '',
   checkInTargetHours: 8,
   onboardingComplete: false,
+  interfaceFont: 'obsidian',
+  galaxyAccentHue: 230,
+  sceneIntensity: 'cinematic',
+  showBranchMoons: true,
+  showBranchSatellites: true,
 };

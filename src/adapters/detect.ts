@@ -1,5 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import * as os from 'node:os';
 import { PATHS, graphifyCandidates, claudeCliCandidates } from '../core/paths';
 import { run } from '../core/shell';
 
@@ -72,12 +73,23 @@ export interface GraphifyAvailability {
 
 let cached: { bin: string | null; version: string | null } | undefined;
 
-/** Tries every known graphify location in order and caches the first one that responds to `--version`. Not a PATH-only lookup, because a GUI app's PATH usually excludes pipx/homebrew/npm install dirs — see graphifyCandidates(). */
+export function clearGraphifyDetectionCache(): void {
+  cached = undefined;
+}
+
+async function userInstalledGraphifyCandidates(): Promise<string[]> {
+  if (process.platform !== 'darwin') return [];
+  const pythonRoot = path.join(os.homedir(), 'Library', 'Python');
+  const versions = await fs.readdir(pythonRoot).catch(() => [] as string[]);
+  return versions.map((version) => path.join(pythonRoot, version, 'bin', 'graphify'));
+}
+
+/** Tries every known graphify location in order and caches only a successful lookup. A negative result must remain refreshable: users commonly install Graphify while this already-running Obsidian process is showing the setup screen. */
 async function resolveGraphifyBin(): Promise<{ bin: string | null; version: string | null }> {
   if (cached !== undefined) {
     return cached;
   }
-  const candidates = [...graphifyCandidates(), ...(await windowsGraphifyCandidates())];
+  const candidates = [...graphifyCandidates(), ...(await userInstalledGraphifyCandidates()), ...(await windowsGraphifyCandidates())];
   for (const candidate of candidates) {
     try {
       const { stdout } = await run(candidate, ['--version']);
@@ -88,11 +100,11 @@ async function resolveGraphifyBin(): Promise<{ bin: string | null; version: stri
       // try the next candidate
     }
   }
-  cached = { bin: null, version: null };
-  return cached;
+  return { bin: null, version: null };
 }
 
-export async function detectGraphify(): Promise<GraphifyAvailability> {
+export async function detectGraphify(options: { forceRefresh?: boolean } = {}): Promise<GraphifyAvailability> {
+  if (options.forceRefresh) clearGraphifyDetectionCache();
   const { bin, version } = await resolveGraphifyBin();
   return { installed: bin !== null, version, bin };
 }

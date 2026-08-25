@@ -44,5 +44,45 @@ export class CodestellationSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           })
       );
+
+    new Setting(containerEl)
+      .setName('Interface font')
+      .setDesc('Applied to Codestellation home and workspace views.')
+      .addDropdown((dropdown) => dropdown
+        .addOption('obsidian', 'Obsidian default')
+        .addOption('system', 'System')
+        .addOption('serif', 'Editorial serif')
+        .addOption('mono', 'Monospace')
+        .setValue(this.plugin.settings.interfaceFont)
+        .onChange(async (value) => {
+          this.plugin.settings.interfaceFont = value as typeof this.plugin.settings.interfaceFont;
+          await this.plugin.saveSettings();
+        }));
+
+    new Setting(containerEl)
+      .setName('Galaxy accent hue')
+      .setDesc('0–359. Changes the accent used across the solar system and workspaces.')
+      .addSlider((slider) => slider
+        .setLimits(0, 359, 1)
+        .setDynamicTooltip()
+        .setValue(this.plugin.settings.galaxyAccentHue)
+        .onChange(async (value) => {
+          this.plugin.settings.galaxyAccentHue = value;
+          await this.plugin.saveSettings();
+        }));
+
+    new Setting(containerEl)
+      .setName('Scene intensity')
+      .setDesc('Minimal reduces geometry, effects, and GPU load. Calm and Cinematic progressively add detail.')
+      .addDropdown((dropdown) => dropdown
+        .addOption('minimal', 'Minimal (low-end PCs)')
+        .addOption('calm', 'Calm')
+        .addOption('cinematic', 'Cinematic')
+        .setValue(this.plugin.settings.sceneIntensity)
+        .onChange(async (value) => {
+          this.plugin.settings.sceneIntensity = value as typeof this.plugin.settings.sceneIntensity;
+          await this.plugin.saveSettings();
+        }));
+
   }
 }

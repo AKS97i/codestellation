@@ -23,6 +23,8 @@ describe('addImportedProject', () => {
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('acme');
     expect(result[0].graphPath).toBeNull();
+    expect(result[0].showBranchMoons).toBe(true);
+    expect(result[0].showBranchSatellites).toBe(true);
     expect(new Date(result[0].importedAt).toString()).not.toBe('Invalid Date');
   });
 

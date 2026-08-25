@@ -7,8 +7,16 @@ export interface LayoutPoint {
 
 export interface LayoutResult {
   positions: Map<string, LayoutPoint>;
+  communities: LayoutCommunity[];
   renderedCount: number;
   totalCount: number;
+}
+
+export interface LayoutCommunity extends LayoutPoint {
+  id: number;
+  radius: number;
+  nodeCount: number;
+  label: string;
 }
 
 // The golden angle. Placing point i at (angle = i * GOLDEN_ANGLE, radius =
@@ -16,6 +24,23 @@ export interface LayoutResult {
 // organic-looking fill of a disk, with no two points ever landing on the
 // same ray from the center. Used for filling each community's own disk.
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+
+export function compactCommunityLabel(label: string, maxLength = 20): string {
+  const leaf = (label.split(/[\\/]/).pop() || label).replace(/\.[a-z0-9]+$/i, '');
+  const words = leaf
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[^a-zA-Z0-9]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length === 0) return 'Community';
+  let result = words[0];
+  for (const word of words.slice(1)) {
+    if (`${result} ${word}`.length > maxLength) return `${result}…`;
+    result += ` ${word}`;
+  }
+  return result.length > maxLength ? `${result.slice(0, maxLength - 1)}…` : result;
+}
 
 /**
  * A real force-directed simulation over thousands of nodes needs level-
@@ -52,7 +77,8 @@ export function computeRadialLayout(nodes: GraphNode[], opts: { width: number; h
   const communities = Array.from(byCommunity.entries()).sort((a, b) => b[1].length - a[1].length);
 
   const positions = new Map<string, LayoutPoint>();
-  if (communities.length === 0) return { positions, renderedCount: 0, totalCount };
+  const layoutCommunities: LayoutCommunity[] = [];
+  if (communities.length === 0) return { positions, communities: layoutCommunities, renderedCount: 0, totalCount };
 
   // The grid must be sized to how many communities will ACTUALLY get a
   // node rendered under maxNodes, not the full community count. Sizing it
@@ -78,16 +104,25 @@ export function computeRadialLayout(nodes: GraphNode[], opts: { width: number; h
 
   let rendered = 0;
   outer: for (let ci = 0; ci < communities.length; ci++) {
-    const [, communityNodes] = communities[ci];
+    const [communityId, communityNodes] = communities[ci];
     const col = ci % cols;
     const row = Math.floor(ci / cols);
-    const communityCx = cellW * (col + 0.5);
+    const stagger = row % 2 === 1 ? Math.min(cellW * 0.12, 18) : 0;
+    const communityCx = Math.min(opts.width - cellW * 0.45, cellW * (col + 0.5) + stagger);
     const communityCy = cellH * (row + 0.5);
 
     // sqrt-scaled toward the cap, so a 5-node community sits tight and a
     // 500-node community fills its whole cell, but neither ever exceeds it
     const fillFraction = Math.min(1, Math.sqrt(communityNodes.length) / 12);
     const diskRadius = Math.max(4, maxDiskRadius * fillFraction);
+    layoutCommunities.push({
+      id: communityId,
+      x: communityCx,
+      y: communityCy,
+      radius: diskRadius,
+      nodeCount: communityNodes.length,
+      label: compactCommunityLabel(communityNodes[0]?.community_name || `Community ${communityId}`),
+    });
 
     for (let ni = 0; ni < communityNodes.length; ni++) {
       if (rendered >= maxNodes) break outer;
@@ -102,5 +137,5 @@ export function computeRadialLayout(nodes: GraphNode[], opts: { width: number; h
     }
   }
 
-  return { positions, renderedCount: rendered, totalCount };
+  return { positions, communities: layoutCommunities, renderedCount: rendered, totalCount };
 }

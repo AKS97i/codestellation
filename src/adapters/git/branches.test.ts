@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import * as path from 'node:path';
-import { listBranches } from './branches';
+import { listBranches, listProjectBranches } from './branches';
 
 // A real, throwaway git repo (not mocked) — see testing/fixtures/git-repo,
 // which has: main + develop (local and pushed to a local "origin"),
@@ -34,5 +34,14 @@ describe('listBranches', () => {
     const branches = await listBranches(FIXTURE_REPO);
     const mains = branches.filter((b) => b.name === 'main');
     expect(mains).toHaveLength(1);
+  });
+});
+
+describe('listProjectBranches', () => {
+  it('finds branches when the imported project is a parent containing nested repos', async () => {
+    const fixtureParent = path.dirname(FIXTURE_REPO);
+    const branches = await listProjectBranches(fixtureParent);
+    expect(branches.some((branch) => branch.name === 'main')).toBe(true);
+    expect(branches.some((branch) => branch.name === 'feature/local-only')).toBe(true);
   });
 });

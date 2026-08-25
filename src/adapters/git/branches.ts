@@ -1,5 +1,7 @@
 import { run } from '../../core/shell';
 import type { Branch } from '../../types';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 
 /**
  * Lists local + remote-tracking branches for a repo, excluding merged/
@@ -40,6 +42,30 @@ export async function listBranches(repoPath: string): Promise<Branch[]> {
 
   await annotateStale(repoPath, branches);
   return branches;
+}
+
+/**
+ * Returns branches for either a normal repository or an imported parent
+ * folder whose immediate children are repositories (the common frontend +
+ * backend workspace layout). The solar system uses the combined result so
+ * those projects receive branch moons/satellites just like single repos.
+ */
+export async function listProjectBranches(projectPath: string): Promise<Branch[]> {
+  const rootGit = await fs.stat(path.join(projectPath, '.git')).then(() => true).catch(() => false);
+  if (rootGit) return listBranches(projectPath);
+
+  const entries = await fs.readdir(projectPath, { withFileTypes: true }).catch(() => [] as import('node:fs').Dirent[]);
+  const nestedRepos = (await Promise.all(entries
+    .filter((entry) => entry.isDirectory())
+    .map(async (entry) => {
+      const repoPath = path.join(projectPath, entry.name);
+      const hasGit = await fs.stat(path.join(repoPath, '.git')).then(() => true).catch(() => false);
+      return hasGit ? repoPath : null;
+    })))
+    .filter((repoPath): repoPath is string => repoPath !== null);
+
+  const groups = await Promise.all(nestedRepos.map((repoPath) => listBranches(repoPath).catch(() => [])));
+  return groups.flat();
 }
 
 /** Marks branches whose last commit is more than 30 days old as stale. */
