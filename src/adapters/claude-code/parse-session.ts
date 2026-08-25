@@ -17,6 +17,8 @@ export async function parseSessionFile(filePath: string): Promise<ParsedSession>
   const result: ParsedSession = {
     sessionId: '',
     cwd: null,
+    customTitle: null,
+    lastPrompt: null,
     firstTimestamp: null,
     lastTimestamp: null,
     messageCount: 0,
@@ -52,6 +54,13 @@ export async function parseSessionFile(filePath: string): Promise<ParsedSession>
     if (typeof line.timestamp === 'string') {
       if (!result.firstTimestamp || line.timestamp < result.firstTimestamp) result.firstTimestamp = line.timestamp;
       if (!result.lastTimestamp || line.timestamp > result.lastTimestamp) result.lastTimestamp = line.timestamp;
+    }
+
+    if (line.type === 'custom-title' && typeof (line as any).customTitle === 'string') {
+      result.customTitle = (line as any).customTitle;
+    }
+    if (line.type === 'last-prompt' && typeof (line as any).lastPrompt === 'string') {
+      result.lastPrompt = (line as any).lastPrompt;
     }
 
     if (line.type === 'assistant') {

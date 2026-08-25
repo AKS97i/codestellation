@@ -5,6 +5,7 @@ import { loadRegistry, type RegistryEntry } from '../../domain/project-registry'
 import { aggregateProjectStats } from '../../domain/session-aggregator';
 import { discoverClaudeCodeProjects } from '../../adapters/claude-code/discover';
 import { discoverCodexProjects } from '../../adapters/codex/discover';
+import { loadCodexSessionTitles } from '../../adapters/codex/session-index';
 import { listBranches } from '../../adapters/git/branches';
 import { renderOverviewPanel } from '../workspace/overview-panel';
 import { renderBranchesPanel } from '../workspace/branches-panel';
@@ -111,8 +112,8 @@ export class WorkspaceView extends ItemView {
       return;
     }
 
-    const shell = container.createDiv({ cls: 'cs-shell' });
-    const hubContent = shell.createDiv({ cls: 'cs-hub-content is-visible' });
+    const shell = container.createDiv({ cls: 'cs-shell cs-workspace-shell' });
+    const hubContent = shell.createDiv({ cls: 'cs-hub-content cs-workspace-content is-visible' });
     hubContent.style.position = 'static';
     hubContent.style.width = '100%';
     hubContent.style.height = '100%';
@@ -215,7 +216,8 @@ export class WorkspaceView extends ItemView {
     codexSessions: Awaited<ReturnType<typeof discoverCodexProjects>>[number]['sessions']
   ) {
     try {
-      const chats = mergeChatsSortedByRecent(claudeSessionsToChats(claudeSessions), codexSessionsToChats(codexSessions));
+      const codexTitles = await loadCodexSessionTitles();
+      const chats = mergeChatsSortedByRecent(claudeSessionsToChats(claudeSessions), codexSessionsToChats(codexSessions, codexTitles));
       renderChatsPanel(panel, chats, entry.path);
     } catch (e) {
       logger.error('failed to load chats', e);
@@ -227,23 +229,31 @@ export class WorkspaceView extends ItemView {
   private async loadBranches(panel: HTMLElement, entry: RegistryEntry) {
     try {
       const isRepo = await fs.stat(path.join(entry.path, '.git')).then(() => true).catch(() => false);
-      if (!isRepo) {
-        // real case hit during testing: a "project" folder (e.g. a client
-        // workspace with docs alongside the actual code) isn't itself a
-        // git repo — the repos are one level down. Name what was found
-        // instead of a generic failure, since there's nothing to retry here.
-        const nestedRepos = await findNestedGitRepos(entry.path);
-        panel.empty();
-        panel.createDiv({
-          cls: 'cs-empty',
-          text: nestedRepos.length > 0
-            ? `This folder isn't a git repo itself. Found ${nestedRepos.length} repo(s) inside it (${nestedRepos.join(', ')}). Per-subfolder branches aren't supported yet.`
-            : "This folder isn't a git repository (no .git found here or in its immediate subfolders).",
-        });
+      if (isRepo) {
+        const branches = await listBranches(entry.path);
+        renderBranchesPanel(panel, [{ label: entry.name, repoPath: entry.path, branches }]);
         return;
       }
-      const branches = await listBranches(entry.path);
-      renderBranchesPanel(panel, branches, { repoPath: entry.path });
+
+      // real case hit during testing: a "project" folder (e.g. a client
+      // workspace with docs alongside the actual code) isn't itself a git
+      // repo — the repos are one level down. Show branches for each repo
+      // found instead of just naming them and giving up.
+      const nestedRepoNames = await findNestedGitRepos(entry.path);
+      if (nestedRepoNames.length === 0) {
+        panel.empty();
+        panel.createDiv({ cls: 'cs-empty', text: "This folder isn't a git repository (no .git found here or in its immediate subfolders)." });
+        return;
+      }
+
+      const groups = await Promise.all(
+        nestedRepoNames.map(async (name) => {
+          const repoPath = path.join(entry.path, name);
+          const branches = await listBranches(repoPath).catch(() => []);
+          return { label: name, repoPath, branches };
+        })
+      );
+      renderBranchesPanel(panel, groups);
     } catch (e) {
       logger.error('failed to load branches', e);
       panel.empty();
@@ -254,7 +264,7 @@ export class WorkspaceView extends ItemView {
   private async loadGraph(panel: HTMLElement, entry: RegistryEntry) {
     try {
       this.disposeGraphPanel?.();
-      this.disposeGraphPanel = await renderGraphPanel(panel, this.app, entry);
+      this.disposeGraphPanel = await renderGraphPanel(panel, this.app, entry, () => this.loadGraph(panel, entry));
     } catch (e) {
       logger.error('failed to load graph panel', e);
       panel.empty();

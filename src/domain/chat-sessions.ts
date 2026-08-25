@@ -2,14 +2,7 @@ import type { ParsedSession } from '../adapters/claude-code/types';
 import type { ParsedCodexSession } from '../adapters/codex/types';
 import type { ChatSession } from '../types';
 
-/**
- * Claude Code's log format has a `custom-title` line type (seen during
- * research, see the implementation plan's environment facts) but its
- * actual field shape was never observed/verified, so this deliberately
- * does NOT guess at it — a wrong guess would either throw or silently
- * show garbage. Titles here are built from data the parsers already
- * verify: a short id plus the session's own timestamp, both real.
- */
+/** Only used when nothing better is available — a real custom-title, or (for Claude) the user's own first prompt, or (for Codex) session_index.jsonl's thread_name, all cover the common case now. */
 function shortId(id: string | null, fallback: string): string {
   if (!id) return fallback;
   return id.length > 8 ? id.slice(0, 8) : id;
@@ -20,24 +13,37 @@ function formatDate(iso: string | null): string {
   return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
+const MAX_PROMPT_TITLE_LENGTH = 80;
+
+/** Claude Code sets an explicit customTitle once a session has one (verified real field, see types.ts) — prefer it. Otherwise the user's own first prompt is a far better label than a bare session id. */
+function claudeTitle(session: ParsedSession): string {
+  if (session.customTitle) return session.customTitle;
+  if (session.lastPrompt) {
+    const trimmed = session.lastPrompt.trim();
+    return trimmed.length > MAX_PROMPT_TITLE_LENGTH ? `${trimmed.slice(0, MAX_PROMPT_TITLE_LENGTH)}…` : trimmed;
+  }
+  return `Session ${shortId(session.sessionId, '?')}, ${formatDate(session.firstTimestamp)}`;
+}
+
 export function claudeSessionsToChats(sessions: ParsedSession[]): ChatSession[] {
   return sessions
     .filter((s) => s.sessionId)
     .map((s) => ({
       id: s.sessionId,
-      title: `Session ${shortId(s.sessionId, '?')}, ${formatDate(s.firstTimestamp)}`,
+      title: claudeTitle(s),
       agent: 'claude' as const,
       updatedAt: s.lastTimestamp ?? s.firstTimestamp ?? new Date(0).toISOString(),
       messageCount: s.messageCount,
     }));
 }
 
-export function codexSessionsToChats(sessions: ParsedCodexSession[]): ChatSession[] {
+/** `titles` is session_index.jsonl's id -> thread_name map (see session-index.ts) — the real, human-written Codex session title. Falls back to the id/date label for sessions that predate that index or aren't in it. */
+export function codexSessionsToChats(sessions: ParsedCodexSession[], titles: Map<string, string> = new Map()): ChatSession[] {
   return sessions
     .filter((s) => s.sessionId)
     .map((s) => ({
       id: s.sessionId as string,
-      title: `Session ${shortId(s.sessionId, '?')}, ${formatDate(s.firstTimestamp)}`,
+      title: (s.sessionId && titles.get(s.sessionId)) || `Session ${shortId(s.sessionId, '?')}, ${formatDate(s.firstTimestamp)}`,
       agent: 'codex' as const,
       updatedAt: s.lastTimestamp ?? s.firstTimestamp ?? new Date(0).toISOString(),
       messageCount: 0, // rollout logs don't expose a simple per-session message count the way Claude Code's assistant-line count does

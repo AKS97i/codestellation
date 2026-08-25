@@ -7,6 +7,8 @@ function claudeSession(overrides: Partial<ParsedSession> = {}): ParsedSession {
   return {
     sessionId: 's1',
     cwd: '/proj',
+    customTitle: null,
+    lastPrompt: null,
     firstTimestamp: '2026-08-20T10:00:00.000Z',
     lastTimestamp: '2026-08-20T11:00:00.000Z',
     messageCount: 2,

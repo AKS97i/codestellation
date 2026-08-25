@@ -4,6 +4,10 @@ export function createSun(wrap: HTMLElement, opts: { name?: string } = {}): { su
   sun.className = 'cs-sun';
   sun.setAttribute('role', 'button');
   sun.setAttribute('aria-label', opts.name ? `${opts.name} (you)` : 'You');
+  const mark = document.createElement('span');
+  mark.className = 'cs-sun-mark';
+  mark.textContent = (opts.name || 'You').trim().slice(0, 1).toUpperCase();
+  sun.appendChild(mark);
   wrap.appendChild(sun);
 
   const label = document.createElement('div');

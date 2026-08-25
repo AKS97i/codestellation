@@ -22,6 +22,7 @@ export class ResetDataModal extends Modal {
 
   onOpen() {
     const { contentEl } = this;
+    contentEl.addClass('cs-modal');
     contentEl.createEl('h2', { text: 'Reset Codestellation data?' });
     contentEl.createEl('p', {
       text: 'This clears the imported-project registry, any active check-in, and re-triggers the setup wizard on next launch. It does NOT delete any notes, graphs, or work logs already written into your vault.',

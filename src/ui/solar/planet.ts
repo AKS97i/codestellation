@@ -4,16 +4,26 @@
 import type { OrbitEngine, OrbitPosition } from './orbit-engine';
 import type { RegistryEntry } from '../../domain/project-registry';
 
-const MIN_RADIUS_PX = 90;
-const RADIUS_STEP_PX = 46;
-const BASE_SPEED_RAD_PER_SEC = (Math.PI * 2) / 22;
-const SPEED_VARIATION = 0.15;
+const MIN_RADIUS_PX = 116;
+const RADIUS_STEP_PX = 72;
+const BASE_SPEED_RAD_PER_SEC = (Math.PI * 2) / 54;
+const SPEED_VARIATION = 0.08;
 
 export function planetRadiusForIndex(index: number): number {
   return MIN_RADIUS_PX + index * RADIUS_STEP_PX;
 }
 
-const DEFAULT_PLANET_SIZE_PX = 44;
+const DEFAULT_PLANET_SIZE_PX = 56;
+
+export function projectMark(name: string): string {
+  const words = name.trim().split(/[\s_-]+/).filter(Boolean);
+  if (words.length > 1) return `${words[0][0]}${words[1][0]}`.toUpperCase();
+  return (words[0] ?? '?').slice(0, 2).toUpperCase();
+}
+
+export function planetAngleForIndex(index: number, total: number): number {
+  return -Math.PI / 2 + (Math.PI * 2 * index) / Math.max(total, 1);
+}
 
 // The prototype (Phase 0) sized planets by mock session count. The real
 // RegistryEntry doesn't carry session counts — that's live adapter data,
@@ -37,7 +47,7 @@ export function createPlanets(
     const radiusPx = planetRadiusForIndex(index);
     const sizePx = planetSizePx(entry);
     const speed = BASE_SPEED_RAD_PER_SEC * (1 - SPEED_VARIATION / 2 + Math.random() * SPEED_VARIATION);
-    const startAngle = Math.random() * Math.PI * 2;
+    const startAngle = planetAngleForIndex(index, entries.length);
 
     engine.addBody(entry.id, { angle: startAngle, radiusPx, speedRadPerSec: speed });
 
@@ -52,9 +62,20 @@ export function createPlanets(
     el.setAttribute('role', 'button');
     el.setAttribute('aria-label', entry.name);
 
+    const mark = document.createElement('div');
+    mark.className = 'cs-planet-mark';
+    mark.textContent = projectMark(entry.name);
+    el.appendChild(mark);
+
     const label = document.createElement('div');
     label.className = 'cs-planet-label';
-    label.textContent = entry.name;
+    const labelName = document.createElement('span');
+    labelName.className = 'cs-planet-label-name';
+    labelName.textContent = entry.name;
+    const labelHint = document.createElement('span');
+    labelHint.className = 'cs-planet-label-hint';
+    labelHint.textContent = 'Open workspace';
+    label.append(labelName, labelHint);
     el.appendChild(label);
 
     el.addEventListener('mouseenter', () => {

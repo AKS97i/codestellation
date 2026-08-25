@@ -7,6 +7,8 @@ function claudeSession(overrides: Partial<ParsedSession> = {}): ParsedSession {
   return {
     sessionId: 'abc12345',
     cwd: '/proj',
+    customTitle: null,
+    lastPrompt: null,
     firstTimestamp: '2026-08-20T10:00:00.000Z',
     lastTimestamp: '2026-08-20T11:00:00.000Z',
     messageCount: 4,
@@ -51,6 +53,39 @@ describe('claudeSessionsToChats / codexSessionsToChats', () => {
   it('falls back to firstTimestamp for updatedAt when lastTimestamp is missing', () => {
     const chat = claudeSessionsToChats([claudeSession({ lastTimestamp: null })])[0];
     expect(chat.updatedAt).toBe('2026-08-20T10:00:00.000Z');
+  });
+
+  it('prefers a real customTitle over any fallback', () => {
+    const chat = claudeSessionsToChats([claudeSession({ customTitle: 'Fix login bug', lastPrompt: 'something else entirely' })])[0];
+    expect(chat.title).toBe('Fix login bug');
+  });
+
+  it('falls back to the user\'s own first prompt when there is no customTitle', () => {
+    const chat = claudeSessionsToChats([claudeSession({ customTitle: null, lastPrompt: 'How does the auth flow work here?' })])[0];
+    expect(chat.title).toBe('How does the auth flow work here?');
+  });
+
+  it('truncates a very long prompt used as a fallback title', () => {
+    const longPrompt = 'x'.repeat(200);
+    const chat = claudeSessionsToChats([claudeSession({ customTitle: null, lastPrompt: longPrompt })])[0];
+    expect(chat.title.length).toBeLessThan(longPrompt.length);
+    expect(chat.title.endsWith('…')).toBe(true);
+  });
+
+  it('falls back to a session id/date label when neither customTitle nor lastPrompt exist', () => {
+    const chat = claudeSessionsToChats([claudeSession({ customTitle: null, lastPrompt: null })])[0];
+    expect(chat.title).toContain('Session');
+  });
+
+  it('uses session_index.jsonl thread_name for Codex sessions when available', () => {
+    const titles = new Map([['def67890', 'Fix registration institutions error']]);
+    const chat = codexSessionsToChats([codexSession()], titles)[0];
+    expect(chat.title).toBe('Fix registration institutions error');
+  });
+
+  it('falls back to a session id/date label for a Codex session with no matching title', () => {
+    const chat = codexSessionsToChats([codexSession()], new Map())[0];
+    expect(chat.title).toContain('Session');
   });
 });
 

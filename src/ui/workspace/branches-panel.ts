@@ -13,15 +13,40 @@ const DIFF_STATUS_LABEL: Record<FileDiffEntry['status'], string> = {
   modified: 'changed',
 };
 
-export interface BranchesPanelDeps {
+export interface RepoBranchGroup {
+  /** Repo folder name, used as a section header when there's more than one — a project folder that bundles several repos (e.g. frontend + backend) shows one section per repo instead of one flat list nobody could tell apart. */
+  label: string;
   repoPath: string;
+  branches: Branch[];
 }
 
-export function renderBranchesPanel(container: HTMLElement, branches: Branch[], deps: BranchesPanelDeps) {
+/**
+ * Renders one or more repos' branches. Most projects are a single repo
+ * (one group, no header needed); a project folder that's a container for
+ * multiple repos (see workspace-view.ts's nested-repo detection) gets one
+ * labeled section per repo, each with its own independent branch list and
+ * compare-two-branches UI, since a branch name is scoped to its own repo,
+ * not comparable across repos.
+ */
+export function renderBranchesPanel(container: HTMLElement, groups: RepoBranchGroup[]) {
   container.empty();
 
-  if (branches.length === 0) {
+  if (groups.length === 0 || groups.every((g) => g.branches.length === 0)) {
     container.createDiv({ cls: 'cs-empty', text: 'No branches found (or this isn’t a git repo).' });
+    return;
+  }
+
+  const showHeaders = groups.length > 1;
+  for (const group of groups) {
+    if (showHeaders) container.createDiv({ cls: 'cs-section-label', text: group.label });
+    const section = container.createDiv({ cls: 'cs-branch-section' });
+    renderRepoBranches(section, group.branches, group.repoPath);
+  }
+}
+
+function renderRepoBranches(container: HTMLElement, branches: Branch[], repoPath: string) {
+  if (branches.length === 0) {
+    container.createDiv({ cls: 'cs-empty', text: 'No branches found.' });
     return;
   }
 
@@ -64,9 +89,9 @@ export function renderBranchesPanel(container: HTMLElement, branches: Branch[], 
     resultEl.createDiv({ cls: 'cs-empty', text: 'Comparing…' });
     try {
       const [onlyA, onlyB, fileDiff] = await Promise.all([
-        commitsUniqueTo(deps.repoPath, refA, refB),
-        commitsUniqueTo(deps.repoPath, refB, refA),
-        diffBetweenRefs(deps.repoPath, refA, refB),
+        commitsUniqueTo(repoPath, refA, refB),
+        commitsUniqueTo(repoPath, refB, refA),
+        diffBetweenRefs(repoPath, refA, refB),
       ]);
       renderCompareResult(resultEl, { refA, refB, onlyA, onlyB, fileDiff });
     } catch (e) {

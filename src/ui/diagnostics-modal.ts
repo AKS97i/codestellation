@@ -9,6 +9,7 @@ export class DiagnosticsModal extends Modal {
 
   async onOpen() {
     const { contentEl } = this;
+    contentEl.addClass('cs-modal');
     contentEl.createEl('h2', { text: 'Codestellation diagnostics' });
     const pre = contentEl.createEl('pre', { text: 'Gathering…' });
     pre.style.whiteSpace = 'pre-wrap';

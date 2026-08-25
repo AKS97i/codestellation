@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { timeOfDayFor } from './greeting';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { finishOnTransitionOrTimeout, timeOfDayFor } from './greeting';
+
+afterEach(() => vi.useRealTimers());
 
 // Regression test for a real reported bug: 8:37 PM was classified as
 // "night" (greeting said "Good night"), which read as too early for most
@@ -18,5 +20,18 @@ describe('timeOfDayFor', () => {
     expect(timeOfDayFor(at(20, 59))).toBe('sunset');
     expect(timeOfDayFor(at(21))).toBe('night');
     expect(timeOfDayFor(at(2))).toBe('night');
+  });
+});
+
+describe('finishOnTransitionOrTimeout', () => {
+  it('finishes through the fallback when a reduced-motion transition event is missed', () => {
+    vi.useFakeTimers();
+    const target = new EventTarget();
+    const onDone = vi.fn();
+
+    finishOnTransitionOrTimeout(target, onDone, 50);
+    vi.advanceTimersByTime(50);
+
+    expect(onDone).toHaveBeenCalledOnce();
   });
 });

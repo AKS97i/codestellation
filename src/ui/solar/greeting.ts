@@ -38,6 +38,25 @@ function formatTime(date: Date): string {
   return `${h}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
+export function finishOnTransitionOrTimeout(target: EventTarget, onDone: () => void, fallbackMs: number): () => void {
+  let finished = false;
+  let fallback: ReturnType<typeof setTimeout>;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    clearTimeout(fallback);
+    target.removeEventListener('transitionend', finish);
+    onDone();
+  };
+  target.addEventListener('transitionend', finish, { once: true });
+  fallback = setTimeout(finish, fallbackMs);
+  return () => {
+    finished = true;
+    clearTimeout(fallback);
+    target.removeEventListener('transitionend', finish);
+  };
+}
+
 export function showGreeting(container: HTMLElement, opts: { name?: string; holdMs?: number; onDone?: (info: { state: TimeOfDay; isWeekday: boolean }) => void } = {}): () => void {
   const now = new Date();
   const state = timeOfDayFor(now);
@@ -70,16 +89,18 @@ export function showGreeting(container: HTMLElement, opts: { name?: string; hold
   void overlay.offsetWidth;
   overlay.classList.add('is-visible');
 
+  let cancelFinish = () => {};
   const timer = setTimeout(() => {
-    overlay.classList.add('is-leaving');
-    overlay.addEventListener('transitionend', () => {
+    cancelFinish = finishOnTransitionOrTimeout(overlay, () => {
       overlay.remove();
       opts.onDone?.({ state, isWeekday: isWeekday(now) });
-    }, { once: true });
+    }, 520);
+    overlay.classList.add('is-leaving');
   }, opts.holdMs ?? 2200);
 
   return () => {
     clearTimeout(timer);
+    cancelFinish();
     overlay.remove();
   };
 }

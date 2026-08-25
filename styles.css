@@ -1,693 +1,235 @@
-/* Design tokens — Phase 1 system.
-   Every color, size, and radius the UI uses should trace back to a token
-   here. Nothing in JS should set a raw color or a static (non-computed)
-   size directly — dynamic per-project values (planet size/hue) are the
-   one deliberate exception, since those vary by data, not by theme. */
+/* Codestellation design system
+   Theme-aware primitives first; component rules below only compose these
+   tokens. The scene keeps its own character without opting out of the host
+   theme, so both dark and light Obsidian themes remain first-class. */
 
 :root {
-  /* space backdrop */
-  --cs-bg-0: #05060f;
-  --cs-bg-1: #0d1023;
-
-  /* glass surfaces — three tiers, increasing prominence */
-  --cs-glass-1: rgba(255, 255, 255, 0.06);
-  --cs-glass-2: rgba(255, 255, 255, 0.10);
-  --cs-glass-3: rgba(255, 255, 255, 0.16);
-  --cs-glass-border: rgba(255, 255, 255, 0.15);
-  --cs-glass-border-strong: rgba(255, 255, 255, 0.28);
-
-  /* text */
-  --cs-text-primary: #f2f2f5;
-  --cs-text-secondary: rgba(242, 242, 245, 0.7);
-  --cs-text-tertiary: rgba(242, 242, 245, 0.45);
-
-  /* accent (warm ember — the same accent validated across every mockup
-     iteration during brainstorming, from the liquid-glass pass onward) */
-  --cs-accent: #e0472c;
-  --cs-accent-soft: rgba(224, 71, 44, 0.35);
-  --cs-accent-2: #ff9d5c;
-
-  /* semantic (graph diff / branch status) */
-  --cs-added: #4ade80;
-  --cs-changed: #22d3c5;
-  --cs-removed: #e0475a;
-
-  /* elevation — glow tiers for celestial bodies, shadow tiers for panels */
-  --cs-glow-sm: 0 0 20px 5px;
-  --cs-glow-md: 0 0 34px 12px;
-  --cs-glow-lg: 0 0 60px 22px;
-  --cs-shadow-panel: 0 8px 24px rgba(0, 0, 0, 0.35);
-
-  /* spacing (4px base) */
-  --cs-space-1: 4px;
-  --cs-space-2: 8px;
-  --cs-space-3: 12px;
-  --cs-space-4: 16px;
-  --cs-space-5: 24px;
-  --cs-space-6: 32px;
-
-  /* radii */
-  --cs-radius-sm: 8px;
-  --cs-radius-md: 14px;
-  --cs-radius-lg: 22px;
-  --cs-radius-full: 999px;
-
-  /* type — one scale, weights limited to 400/600/800 */
-  --cs-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --cs-font-mono: 'SFMono-Regular', Consolas, monospace;
-  --cs-text-display: 1.5em;
-  --cs-text-title: 1.2em;
-  --cs-text-body: 0.85em;
-  --cs-text-caption: 0.7em;
-  --cs-weight-regular: 400;
-  --cs-weight-semibold: 600;
-  --cs-weight-bold: 800;
-  --cs-tracking-tight: -0.02em; /* display sizes only — never on body text */
-
-  /* focus ring — every interactive element needs one, not just buttons */
-  --cs-focus-ring: 0 0 0 2px var(--cs-bg-0), 0 0 0 4px var(--cs-accent-2);
-}
-
-/* Obsidian theme bridge.
-   The app has two zones with different rules:
-   - The solar system itself (greeting + orbiting planets, .cs-shell's
-     backdrop, .cs-sun/.cs-planet) is a deliberate cinematic front door —
-     it stays on the dark cosmic tokens above regardless of host theme,
-     per the Phase 1 "dark-only for v0.1" decision. A sun and planets on
-     a white background don't read as anything; this one surface earns
-     its own permanent dark identity, the same way e.g. a map app's globe
-     view stays dark under a light OS theme.
-   - Everything you actually *work* in once a planet is launched — hub
-     tabs, stat tiles, chat rows, branch rows, buttons, inputs — is a
-     tool, not a scene, and should look and feel like a native part of
-     Obsidian: it inherits the user's light/dark theme and any custom
-     theme's accent color via the variables below, exactly like Obsidian's
-     own core views do. `--cs-chrome-*` is the vocabulary the hub chrome
-     rules (further down) are written against; nothing under "Generic
-     components" hardcodes a color once this section defines it.
-   This block does nothing in the standalone browser prototype (the
-   Obsidian variables it reads don't exist there), so every fallback is
-   the closest match from the cosmic tokens above — the prototype keeps
-   looking the way it always has. */
-:root {
-  --cs-host-bg: var(--background-primary, var(--cs-bg-0));
-  --cs-host-text: var(--text-normal, var(--cs-text-primary));
-  --cs-host-border: var(--background-modifier-border, var(--cs-glass-border));
-
-  --cs-chrome-font: var(--font-interface, var(--cs-font));
-  --cs-chrome-font-mono: var(--font-monospace, var(--cs-font-mono));
-
-  --cs-chrome-bg: var(--background-primary, var(--cs-bg-0));
-  --cs-chrome-bg-elevated: var(--background-primary-alt, var(--cs-glass-2));
-  --cs-chrome-bg-secondary: var(--background-secondary, var(--cs-glass-1));
-  --cs-chrome-bg-hover: var(--background-modifier-hover, var(--cs-glass-2));
-  --cs-chrome-bg-active: var(--background-modifier-active-hover, var(--cs-glass-3));
-
-  --cs-chrome-border: var(--background-modifier-border, var(--cs-glass-border));
-  --cs-chrome-border-hover: var(--background-modifier-border-hover, var(--cs-glass-border-strong));
-  --cs-chrome-border-focus: var(--background-modifier-border-focus, var(--cs-accent-2));
-
-  --cs-chrome-text: var(--text-normal, var(--cs-text-primary));
-  --cs-chrome-text-muted: var(--text-muted, var(--cs-text-secondary));
-  --cs-chrome-text-faint: var(--text-faint, var(--cs-text-tertiary));
-  --cs-chrome-text-on-accent: var(--text-on-accent, #fff);
-
-  --cs-chrome-accent: var(--interactive-accent, var(--cs-accent));
-  --cs-chrome-accent-hover: var(--interactive-accent-hover, var(--cs-accent-2));
-
-  --cs-chrome-radius-s: var(--radius-s, var(--cs-radius-sm));
-  --cs-chrome-radius-m: var(--radius-m, var(--cs-radius-md));
-  --cs-chrome-shadow-s: var(--shadow-s, var(--cs-shadow-panel));
-
-  --cs-chrome-scrollbar-thumb: var(--scrollbar-thumb-bg, var(--cs-glass-2));
-  --cs-chrome-scrollbar-thumb-hover: var(--scrollbar-thumb-bg-hover, var(--cs-glass-3));
-}
-/* Motion tokens + the ambient-motion budget.
-   Principles:
-   - Orbit motion is slow, continuous, and ambient — it should never demand
-     attention. The rAF orbit engine (orbit-engine.js) already runs
-     independent of these CSS values; this file governs everything else.
-   - The fly-to-center transition is the one hero motion in the whole
-     app and gets the longest duration on purpose.
-   - Tab/panel changes are quick and never involve translation, just
-     opacity/active-state — content shouldn't feel like it's "arriving".
-   - Every infinite/ambient CSS animation (the sun's flare and pulse ring)
-     must have an explicit prefers-reduced-motion override, since the
-     generic selector below can't reach into ::before/::after pseudo-
-     elements — animations declared there need their own reduced-motion
-     rule (see the .cs-sun::before / ::after overrides here). */
-
-:root {
-  --cs-dur-instant: 80ms;
-  --cs-dur-quick: 150ms;
-  --cs-dur-base: 250ms;
-  --cs-dur-flight: 650ms;
-  --cs-ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
-  --cs-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cs-planet, .cs-sun, .cs-greeting, .cs-hub, .cs-hub-content, .cs-star {
-    transition-duration: 1ms !important;
-    animation-duration: 1ms !important;
-  }
-  /* pseudo-element animations don't inherit the rule above */
-  .cs-sun::before, .cs-sun::after {
-    animation-duration: 1ms !important;
-  }
-  /* the rAF orbit loop itself still runs (it's JS, not CSS) — planets end
-     up visually static under reduced motion because OrbitEngine reads
-     this same media query at start() and skips angle advancement entirely
-     rather than just speeding through frames invisibly fast; see
-     orbit-engine.js */
+  --cs-font-ui: var(--font-interface, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  --cs-font-mono: var(--font-monospace, "SFMono-Regular", Consolas, monospace);
+  --cs-space-1: 4px; --cs-space-2: 8px; --cs-space-3: 12px; --cs-space-4: 16px; --cs-space-5: 24px; --cs-space-6: 32px; --cs-space-7: 48px;
+  --cs-radius-xs: 6px; --cs-radius-sm: 8px; --cs-radius-md: 12px; --cs-radius-lg: 16px; --cs-radius-full: 999px;
+  --cs-dur-instant: 120ms; --cs-dur-fast: 180ms; --cs-dur-base: 240ms; --cs-dur-slow: 420ms; --cs-dur-flight: 650ms;
+  --cs-ease-out: cubic-bezier(0.22, 1, 0.36, 1); --cs-ease-out-expo: var(--cs-ease-out); --cs-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --cs-bg: var(--background-primary, #16181d); --cs-surface: var(--background-primary-alt, #1c1f26); --cs-surface-raised: var(--background-secondary, #252932); --cs-surface-hover: var(--background-modifier-hover, rgba(128, 128, 128, 0.11)); --cs-surface-active: var(--background-modifier-active-hover, rgba(128, 128, 128, 0.18));
+  --cs-border: var(--background-modifier-border, rgba(128, 128, 128, 0.22)); --cs-border-strong: var(--background-modifier-border-hover, rgba(128, 128, 128, 0.38)); --cs-focus: var(--interactive-accent, #7b8cff); --cs-accent: var(--interactive-accent, #7b8cff); --cs-accent-hover: var(--interactive-accent-hover, #94a1ff); --cs-accent-text: var(--text-on-accent, #fff);
+  --cs-text: var(--text-normal, #f1f3f8); --cs-text-muted: var(--text-muted, #a6adbd); --cs-text-faint: var(--text-faint, #737b8c); --cs-success: var(--color-green, #55b685); --cs-warning: var(--color-orange, #dc9c55); --cs-danger: var(--color-red, #df6d78);
+  --cs-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08), 0 5px 14px rgba(0, 0, 0, 0.05); --cs-shadow-md: 0 12px 32px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06); --cs-focus-ring: 0 0 0 2px var(--cs-bg), 0 0 0 4px color-mix(in srgb, var(--cs-focus) 72%, transparent);
 }
 
 * { box-sizing: border-box; }
 
-/* Note: unlike the standalone prototype, this stylesheet runs inside an
-   Obsidian pane, not a full document — there's no html/body to size here.
-   .cs-shell fills whatever container it's given (the ItemView's content
-   element), not the viewport, since it's one pane among possibly several. */
-.cs-shell {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  min-height: 480px;
-  overflow: hidden;
-  background: radial-gradient(ellipse at center, var(--cs-bg-1) 0%, var(--cs-bg-0) 70%);
-  font-family: var(--cs-font);
-  color: var(--cs-text-primary);
-}
+/* The bounded app canvas respects a pane, never a browser viewport. */
+.cs-shell { position: relative; isolation: isolate; min-height: 100%; overflow: hidden; color: var(--cs-text); font-family: var(--cs-font-ui); background: radial-gradient(1000px 440px at 50% -180px, color-mix(in srgb, var(--cs-accent) 9%, transparent), transparent 70%), var(--cs-bg); }
+.cs-home-shell::before { position: absolute; z-index: -1; inset: 0; content: ""; opacity: 0.44; background-image: radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--cs-text) 7%, transparent) 1px, transparent 0); background-size: 26px 26px; mask-image: linear-gradient(to bottom, black, transparent 82%); pointer-events: none; }
 
-.cs-topbar {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--cs-space-4) var(--cs-space-5);
-  z-index: 5;
-  pointer-events: none;
-}
+/* Header and navigation */
+.cs-topbar { position: absolute; z-index: 20; top: 0; right: 0; left: 0; display: flex; align-items: center; justify-content: space-between; min-height: 64px; padding: 0 var(--cs-space-5); border-bottom: 1px solid color-mix(in srgb, var(--cs-border) 70%, transparent); background: color-mix(in srgb, var(--cs-bg) 82%, transparent); backdrop-filter: blur(14px); }
+.cs-topbar-title { display: flex; align-items: center; gap: 9px; font-size: 0.9em; font-weight: 650; letter-spacing: -0.012em; color: var(--cs-text); transition: opacity var(--cs-dur-fast) var(--cs-ease-standard); }
+.cs-topbar-title::before { width: 9px; height: 9px; border: 2px solid var(--cs-accent); border-radius: 50%; box-shadow: 0 0 0 4px color-mix(in srgb, var(--cs-accent) 12%, transparent); content: ""; }
 .cs-topbar > * { pointer-events: auto; }
-.cs-topbar-title { font-weight: 700; letter-spacing: -0.01em; transition: opacity var(--cs-dur-quick) ease; }
-/* the hub's own back button occupies the same top-left corner and shows a
-   more specific title already — the generic app title would just overlap it.
-   `.cs-topbar` comes BEFORE `.cs-hub-stage` in the DOM (with `.cs-solar-wrap`
-   between them), so this needs `:has()` with the general sibling combinator,
-   not `+`/`~` alone, which can only select *later* siblings. */
-.cs-topbar:has(~ .cs-hub-stage.is-active) .cs-topbar-title,
-.cs-topbar:has(~ .cs-hub-stage.is-active) .cs-topbar-add { opacity: 0; pointer-events: none; }
-.cs-topbar-add { transition: opacity var(--cs-dur-quick) ease; }
+.cs-topbar:has(~ .cs-hub-stage.is-active) .cs-topbar-title, .cs-topbar:has(~ .cs-hub-stage.is-active) .cs-topbar-add { opacity: 0; pointer-events: none; }
+.cs-tabs { display: flex; align-items: center; gap: 2px; width: fit-content; max-width: 100%; padding: 3px; overflow-x: auto; border: 1px solid var(--cs-border); border-radius: var(--cs-radius-md); background: color-mix(in srgb, var(--cs-surface) 78%, transparent); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--cs-text) 4%, transparent); }
+.cs-tab { position: relative; flex: 0 0 auto; min-height: 30px; border: 0; border-radius: var(--cs-radius-sm); padding: 0 11px; background: transparent; color: var(--cs-text-muted); font: 550 0.78em/1 var(--cs-font-ui); cursor: pointer; transition: color var(--cs-dur-fast) var(--cs-ease-standard), background var(--cs-dur-fast) var(--cs-ease-standard), box-shadow var(--cs-dur-fast) var(--cs-ease-standard); }
+.cs-tab:hover { color: var(--cs-text); background: var(--cs-surface-hover); }
+.cs-tab.is-active { color: var(--cs-text); background: var(--cs-surface-raised); box-shadow: var(--cs-shadow-sm); }
+.cs-tab.is-active::after { position: absolute; right: 9px; bottom: 4px; left: 9px; height: 2px; border-radius: var(--cs-radius-full); background: var(--cs-accent); content: ""; }
+.cs-tab-panel { display: none; }
+.cs-tab-panel.is-active { display: block; animation: cs-content-in var(--cs-dur-base) var(--cs-ease-out) both; }
 
+/* Buttons, filters, inputs and focus are compact and touch-safe. */
+.cs-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 32px; border: 1px solid transparent; border-radius: var(--cs-radius-sm); padding: 0 12px; background: transparent; color: var(--cs-text); font: 600 0.78em/1 var(--cs-font-ui); letter-spacing: -0.004em; cursor: pointer; transition: transform var(--cs-dur-instant) var(--cs-ease-standard), background var(--cs-dur-fast) var(--cs-ease-standard), border-color var(--cs-dur-fast) var(--cs-ease-standard), box-shadow var(--cs-dur-fast) var(--cs-ease-standard), opacity var(--cs-dur-fast) var(--cs-ease-standard); }
+.cs-btn-primary { border-color: color-mix(in srgb, var(--cs-accent) 76%, transparent); background: var(--cs-accent); color: var(--cs-accent-text); box-shadow: 0 5px 12px color-mix(in srgb, var(--cs-accent) 22%, transparent); }
+.cs-btn-primary:hover { background: var(--cs-accent-hover); box-shadow: 0 7px 17px color-mix(in srgb, var(--cs-accent) 28%, transparent); transform: translateY(-1px); }
+.cs-btn-ghost { border-color: var(--cs-border); background: color-mix(in srgb, var(--cs-surface) 64%, transparent); }
+.cs-btn-ghost:hover { border-color: var(--cs-border-strong); background: var(--cs-surface-hover); }
+.cs-btn:active { transform: scale(0.975); }
+.cs-btn:disabled { opacity: 0.42; cursor: not-allowed; transform: none; box-shadow: none; }
+.cs-filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cs-space-2); margin-bottom: var(--cs-space-4); }
+.cs-filter { min-height: 28px; border: 1px solid var(--cs-border); border-radius: var(--cs-radius-sm); padding: 0 9px; background: var(--cs-surface); color: var(--cs-text-muted); font: 550 0.75em/1 var(--cs-font-ui); cursor: pointer; transition: background var(--cs-dur-fast) var(--cs-ease-standard), border-color var(--cs-dur-fast) var(--cs-ease-standard), color var(--cs-dur-fast) var(--cs-ease-standard); }
+.cs-filter:hover { border-color: var(--cs-border-strong); color: var(--cs-text); background: var(--cs-surface-hover); }
+.cs-filter.is-active { border-color: color-mix(in srgb, var(--cs-accent) 38%, var(--cs-border)); background: color-mix(in srgb, var(--cs-accent) 13%, var(--cs-surface)); color: var(--cs-text); }
+.cs-date-input { min-height: 32px; border: 1px solid var(--cs-border); border-radius: var(--cs-radius-sm); padding: 0 10px; background: var(--cs-surface); color: var(--cs-text); font: 0.8em var(--cs-font-ui); }
+.cs-date-input:hover { border-color: var(--cs-border-strong); }
+.cs-date-input:focus-visible { border-color: var(--cs-focus); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--cs-focus) 18%, transparent); }
+.cs-btn:focus-visible, .cs-tab:focus-visible, .cs-filter:focus-visible, .cs-chat-row:focus-visible, .cs-planet:focus-visible, .cs-sun:focus-visible { outline: none; box-shadow: var(--cs-focus-ring); }
+
+/* Home: matte orbital instruments instead of glossy illustrated spheres. */
 .cs-solar-wrap {
   position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  inset: 64px 0 0;
+  overflow: hidden;
+  transition: opacity var(--cs-dur-slow) var(--cs-ease-out), filter var(--cs-dur-slow) var(--cs-ease-standard);
 }
-/* while a hub is open, dim every planet except the one actively flying/focused —
-   targeting individual planets (not the wrap's own opacity) so the flying
-   planet, which is promoted to position:fixed and z-index:50, stays fully
-   visible instead of being dimmed along with everything else in its subtree */
-.cs-solar-wrap.is-backgrounded .cs-planet:not(.is-flying) {
-  opacity: 0;
-  transition: opacity var(--cs-dur-base) ease;
-}
-.cs-solar-wrap.is-backgrounded .cs-orbit-ring {
-  opacity: 0;
-  transition: opacity var(--cs-dur-base) ease;
-}
-.cs-solar-orbits {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-.cs-solar-orbits .cs-orbit-ring {
-  position: absolute;
-  top: 50%; left: 50%;
-  border: 1px dashed rgba(255, 255, 255, 0.12);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-}
+.cs-home-intro { position: absolute; z-index: 4; top: var(--cs-space-7); left: clamp(24px, 5vw, 72px); pointer-events: none; }
+.cs-home-eyebrow { color: var(--cs-accent); font-size: 0.64em; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.cs-home-title { margin-top: var(--cs-space-2); color: var(--cs-text); font-size: clamp(1.55em, 3.4vw, 2.45em); font-weight: 610; letter-spacing: -0.045em; line-height: 1.05; }
+.cs-home-subtitle { margin-top: var(--cs-space-2); color: var(--cs-text-muted); font-size: 0.78em; }
+.cs-orbit-rings { position: absolute; top: 50%; left: 50%; pointer-events: none; }
+.cs-orbit-ring { position: absolute; top: 0; left: 0; border: 1px solid color-mix(in srgb, var(--cs-text) 8%, transparent); border-radius: 50%; transform: translate(-50%, -50%); }
+.cs-orbit-ring::after { position: absolute; top: 50%; left: -2px; width: 4px; height: 4px; border-radius: 50%; background: color-mix(in srgb, var(--cs-accent) 46%, transparent); content: ""; }
+.cs-solar-wrap.is-backgrounded { filter: saturate(0.55) brightness(0.62); }
+.cs-solar-wrap.is-backgrounded .cs-home-intro, .cs-solar-wrap.is-backgrounded .cs-orbit-rings, .cs-solar-wrap.is-backgrounded .cs-planet:not(.is-flying) { opacity: 0.08; }
 
-/* Hub stage: a reserved landing hole (invisible but laid out) plus the
-   content that appears once a planet has fully arrived there. */
-.cs-hub-stage {
-  position: absolute;
-  inset: 0;
-  display: none;
-}
-.cs-hub-stage.is-active { display: block; }
-
-.cs-hub-hole {
-  position: absolute;
-  top: 96px;
-  left: 96px;
-  width: 120px;
-  height: 120px;
-  visibility: hidden;
-}
-
-.cs-hub-back {
-  position: absolute;
-  top: var(--cs-space-4);
-  left: var(--cs-space-4);
-  z-index: 10;
-}
-
-/* Once a planet lands, its hub is a workspace, not a scene — it gets a
-   solid native surface (not the transparent space backdrop showing
-   through) plus native text/font so it reads as a real Obsidian panel.
-   It's still a glass panel floating over the space backdrop rather than
-   a flat native rectangle, though: an elevated (not primary) background,
-   a soft outer shadow, and a 1px inner highlight along the top edge
-   (the standard "glass catching light" cue) keep it feeling like part of
-   this app's identity instead of a bare settings page, while every color
-   underneath is still a native token so it still adapts to the user's
-   theme and accent color. */
-.cs-hub-content {
-  position: absolute;
-  top: 96px;
-  left: 260px;
-  right: var(--cs-space-5);
-  bottom: var(--cs-space-5);
-  opacity: 0;
-  overflow-y: auto;
-  background: var(--cs-chrome-bg-elevated);
-  color: var(--cs-chrome-text);
-  font-family: var(--cs-chrome-font);
-  border-radius: var(--cs-chrome-radius-m);
-  padding: var(--cs-space-5);
-  box-shadow: var(--cs-chrome-shadow-s), 0 24px 60px -20px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--cs-chrome-border);
-  transition: opacity var(--cs-dur-base) ease;
-}
-.cs-hub-content.is-visible { opacity: 1; }
-.cs-hub-content::-webkit-scrollbar-thumb { background-color: var(--cs-chrome-scrollbar-thumb); }
-.cs-hub-content::-webkit-scrollbar-thumb:hover { background-color: var(--cs-chrome-scrollbar-thumb-hover); }
-
-.cs-hub-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--cs-space-4);
-}
-.cs-wip-banner {
-  font-size: .78em;
-  color: var(--cs-chrome-text-muted);
-  background: var(--cs-chrome-bg-secondary);
-  border: 1px solid var(--cs-chrome-border);
-  border-left: 3px solid var(--cs-chrome-accent);
-  border-radius: var(--cs-chrome-radius-s);
-  padding: 8px 12px;
-  margin-bottom: var(--cs-space-4);
-}
-
-.cs-hub-title {
-  font-size: 1.35em;
-  font-weight: 800;
-  letter-spacing: -0.015em;
-  color: var(--cs-chrome-text);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-/* small accent dot before the project name — a quiet brand touch that
-   also doubles as a "this project is live" indicator, cheaper than an
-   icon font and themeable via the same accent token as everything else */
-.cs-hub-title::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--cs-chrome-accent);
-  box-shadow: 0 0 8px 1px var(--cs-chrome-accent);
-  flex-shrink: 0;
-}
-
-.cs-tabs {
-  display: flex;
-  gap: 2px;
-  background: var(--cs-chrome-bg-secondary);
-  border-radius: var(--cs-chrome-radius-s);
-  padding: 4px;
-  width: fit-content;
-  margin-bottom: var(--cs-space-4);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
-}
-
-.cs-tab-panel { display: none; }
-.cs-tab-panel.is-active { display: block; }
-
-.cs-stat-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(100px, 1fr));
-  gap: var(--cs-space-3);
-}
-
-.cs-filter-row { display: flex; align-items: center; gap: var(--cs-space-2); margin-bottom: var(--cs-space-3); }
-.cs-chat-list { display: flex; flex-direction: column; gap: var(--cs-space-2); }
-.cs-branch-section { margin-bottom: var(--cs-space-4); }
-/* Sun */
 .cs-sun {
-  width: 76px;
-  height: 76px;
-  border-radius: 50%;
-  position: relative;
-  cursor: pointer;
-  background:
-    radial-gradient(circle at 40% 35%, rgba(255,255,255,.85), transparent 20%),
-    radial-gradient(circle at 65% 70%, rgba(180,60,10,.35), transparent 30%),
-    radial-gradient(circle at 25% 60%, rgba(255,230,150,.25), transparent 25%),
-    radial-gradient(circle at 55% 20%, rgba(255,255,220,.3), transparent 22%),
-    radial-gradient(circle at 42% 40%, #fff3c4 0%, #ffd15c 30%, #ff9d3d 62%, #d9611f 85%, #a8431a 100%);
-  box-shadow: 0 0 60px 22px rgba(255,190,90,.5), inset -14px -14px 30px rgba(140,50,10,.5);
-  transition: transform var(--cs-dur-flight) var(--cs-ease-out-expo), opacity var(--cs-dur-flight) var(--cs-ease-out-expo);
-}
-/* subtle granular surface texture, independent of the mottling above so it doesn't move with the flare rotation */
-.cs-sun::after {
-  content: '';
   position: absolute;
-  inset: 0;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border: 1px solid color-mix(in srgb, var(--cs-accent) 42%, var(--cs-border));
   border-radius: 50%;
-  background-image: radial-gradient(circle, rgba(255,255,255,.4) 1px, transparent 1.5px);
-  background-size: 7px 7px;
-  opacity: .18;
-  mix-blend-mode: overlay;
-  pointer-events: none;
+  background: color-mix(in srgb, var(--cs-surface-raised) 90%, var(--cs-accent) 10%);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--cs-accent) 5%, transparent), 0 18px 48px rgba(0, 0, 0, 0.22), inset 0 1px 0 color-mix(in srgb, white 6%, transparent);
+  cursor: default;
+  transition: transform var(--cs-dur-flight) var(--cs-ease-out), opacity var(--cs-dur-flight) var(--cs-ease-out);
 }
-.cs-sun::before {
-  content: '';
-  position: absolute;
-  inset: -20px;
-  border-radius: 50%;
-  background: repeating-conic-gradient(rgba(255,190,110,.28) 0deg 3deg, transparent 3deg 14deg);
-  /* mask cuts a hole matching the sun's own radius, so rays only render in the outer ring —
-     the earlier prototype's "rays going through the sun" bug was this mask being absent,
-     letting a negative-z pseudo-element paint above a semi-transparent parent background. */
-  -webkit-mask-image: radial-gradient(circle, transparent 0 66%, black 68% 100%);
-  mask-image: radial-gradient(circle, transparent 0 66%, black 68% 100%);
-  animation: cs-flare-spin 50s linear infinite;
-  z-index: -1;
-}
-@keyframes cs-flare-spin { to { transform: rotate(360deg); } }
-.cs-sun.is-exiting { transform: translateY(-200px) scale(.4); opacity: 0; }
+.cs-sun::before, .cs-sun::after { position: absolute; border: 1px solid color-mix(in srgb, var(--cs-accent) 18%, transparent); border-radius: inherit; content: ""; }
+.cs-sun::before { inset: -19px; }
+.cs-sun::after { inset: -34px; border-style: dashed; animation: cs-halo-breathe 5s ease-in-out infinite; }
+.cs-sun-mark { color: var(--cs-text); font: 620 1.15em/1 var(--cs-font-ui); letter-spacing: -0.03em; }
+.cs-sun.is-exiting { transform: translateY(-130px) scale(0.66); opacity: 0; }
+.cs-sun-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, 55px); color: var(--cs-text-muted); font-size: 0.68em; font-weight: 600; letter-spacing: 0.04em; transition: transform var(--cs-dur-flight) var(--cs-ease-out), opacity var(--cs-dur-flight) var(--cs-ease-out); }
+.cs-sun-label.is-exiting { transform: translate(-50%, -115px); opacity: 0; }
 
-.cs-sun-label {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, 46px);
-  font-size: .75em;
-  opacity: .6;
-  transition: transform var(--cs-dur-flight) var(--cs-ease-out-expo), opacity var(--cs-dur-flight) var(--cs-ease-out-expo);
-}
-.cs-sun-label.is-exiting { transform: translate(-50%, -160px); opacity: 0; }
-
-/* Planets */
 .cs-planet {
   position: absolute;
-  top: 50%; left: 50%;
-  border-radius: 50%;
-  cursor: pointer;
-  background:
-    radial-gradient(circle at 38% 32%, rgba(255,255,255,.5), transparent 25%),
-    radial-gradient(circle at 65% 70%, hsla(var(--planet-hue) 60% 15% / .4), transparent 35%),
-    radial-gradient(circle at 70% 25%, hsla(var(--planet-hue) 90% 80% / .3), transparent 25%),
-    radial-gradient(circle at 30% 30%, hsl(var(--planet-hue) 80% 72%), hsl(var(--planet-hue) 70% 45%) 60%, hsl(var(--planet-hue) 60% 25%) 100%);
-  box-shadow: 0 0 20px 5px hsla(var(--planet-hue) 80% 60% / .35), inset -10px -10px 18px rgba(0,0,0,.35);
-  transition: box-shadow .2s ease, opacity var(--cs-dur-base) ease;
-}
-/* a couple of "continent"-style surface patches so each planet reads as textured, not a flat gradient sphere */
-.cs-planet::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%; /* no overflow:hidden on .cs-planet itself — that would clip .cs-planet-label, which is deliberately positioned outside the circle */
-  background:
-    radial-gradient(ellipse 40% 25% at 25% 65%, hsla(var(--planet-hue) 50% 20% / .35), transparent 70%),
-    radial-gradient(ellipse 30% 20% at 70% 40%, hsla(var(--planet-hue) 50% 20% / .3), transparent 70%);
-  pointer-events: none;
-}
-.cs-planet.is-focused { box-shadow: 0 0 34px 12px hsla(var(--planet-hue) 80% 65% / .7), inset -10px -10px 18px rgba(0,0,0,.35); }
-.cs-planet.is-flying { transition: left var(--cs-dur-flight) var(--cs-ease-out-expo), top var(--cs-dur-flight) var(--cs-ease-out-expo), width var(--cs-dur-flight) var(--cs-ease-out-expo), height var(--cs-dur-flight) var(--cs-ease-out-expo); }
-.cs-planet.is-launched { opacity: 0; transition: opacity var(--cs-dur-base) ease; }
-.cs-planet-label {
-  position: absolute;
-  bottom: -20px; left: 50%;
-  transform: translateX(-50%);
-  font-size: .65em;
-  background: rgba(0,0,0,.45);
-  padding: 2px 8px;
-  border-radius: 6px;
-  white-space: nowrap;
-  opacity: 0;
-  transition: opacity .15s ease;
-  pointer-events: none;
-}
-.cs-planet.is-focused .cs-planet-label { opacity: 1; }
-
-/* Greeting */
-.cs-greeting {
-  position: absolute;
-  inset: 0;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  opacity: 0;
-  transition: opacity var(--cs-dur-base) ease;
-}
-.cs-greeting.is-visible { opacity: 1; }
-.cs-greeting.is-leaving { opacity: 0; }
-.cs-sky-morning { background: linear-gradient(180deg,#ffd39e 0%,#ff9d76 35%,#6a89c7 100%); }
-.cs-sky-day { background: linear-gradient(180deg,#6ec3ff 0%,#3a8dde 60%,#1c5aa8 100%); }
-.cs-sky-sunset { background: linear-gradient(180deg,#3a2b6b 0%,#a8447a 40%,#ff8a5b 75%,#ffd28a 100%); }
-.cs-sky-night { background: linear-gradient(180deg,#050714 0%,#0d1230 55%,#151b3d 100%); }
-.cs-greeting-stars { position: absolute; inset: 0; }
-.cs-star { position: absolute; width: 2px; height: 2px; background: #fff; border-radius: 50%; animation: cs-star-twinkle 2.5s ease-in-out infinite; }
-.cs-star-big { width: 3px; height: 3px; box-shadow: 0 0 6px 1px rgba(255,255,255,.8); }
-@keyframes cs-star-twinkle { 0%, 100% { opacity: .2; } 50% { opacity: 1; } }
-.cs-greeting-line { font-size: 1.5em; font-weight: 800; letter-spacing: -0.02em; text-shadow: 0 2px 12px rgba(0,0,0,.25); }
-.cs-greeting-sub { font-size: .85em; opacity: .8; margin-top: var(--cs-space-2); }
-
-/* Generic components — hub chrome. Native tokens throughout (see the
-   Obsidian theme bridge above) so this reads as a built-in Obsidian
-   feature in whatever theme the user has, light or dark. */
-.cs-btn {
-  border: none;
-  border-radius: var(--cs-chrome-radius-s);
-  padding: 9px 18px;
-  font-size: .85em;
-  font-weight: 600;
-  font-family: var(--cs-chrome-font);
-  cursor: pointer;
-  transition: background var(--cs-dur-quick) ease, box-shadow var(--cs-dur-quick) ease, transform var(--cs-dur-quick) ease;
-}
-.cs-btn-primary {
-  background: linear-gradient(155deg, color-mix(in srgb, var(--cs-chrome-accent) 100%, white 18%), var(--cs-chrome-accent));
-  color: var(--cs-chrome-text-on-accent);
-  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--cs-chrome-accent) 70%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-}
-.cs-btn-primary:hover { box-shadow: 0 8px 22px -6px color-mix(in srgb, var(--cs-chrome-accent) 85%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.25); transform: translateY(-1px); }
-.cs-btn-ghost { background: var(--cs-chrome-bg-secondary); color: var(--cs-chrome-text); border: 1px solid var(--cs-chrome-border); }
-.cs-btn-ghost:hover { background: var(--cs-chrome-bg-hover); border-color: var(--cs-chrome-border-hover); }
-.cs-btn:active { transform: scale(.97); }
-
-.cs-stat {
-  position: relative;
-  background: var(--cs-chrome-bg-secondary);
-  border: 1px solid var(--cs-chrome-border);
-  border-radius: var(--cs-chrome-radius-m);
-  padding: var(--cs-space-3) var(--cs-space-4) var(--cs-space-3) calc(var(--cs-space-4) + 3px);
-  overflow: hidden;
-  transition: border-color var(--cs-dur-quick) ease, transform var(--cs-dur-quick) ease;
-}
-/* a thin accent rail on the left, the same "this is Codestellation" cue
-   the hub title's dot gives — a stat tile otherwise has no color at all */
-.cs-stat::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 3px;
-  background: var(--cs-chrome-accent);
-  opacity: 0.7;
-}
-.cs-stat:hover { border-color: var(--cs-chrome-border-hover); transform: translateY(-1px); }
-.cs-stat-label { font-size: .68em; color: var(--cs-chrome-text-faint); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
-.cs-stat-value { font-size: 1.4em; font-weight: 800; margin-top: 3px; color: var(--cs-chrome-text); font-family: var(--cs-chrome-font-mono); }
-
-.cs-tab { background: transparent; border: none; color: var(--cs-chrome-text-muted); padding: 7px 16px; border-radius: 6px; font-size: .82em; font-weight: 600; font-family: var(--cs-chrome-font); cursor: pointer; transition: background var(--cs-dur-quick) ease, color var(--cs-dur-quick) ease, box-shadow var(--cs-dur-quick) ease; }
-.cs-tab:hover { background: var(--cs-chrome-bg-hover); color: var(--cs-chrome-text); }
-.cs-tab.is-active {
-  background: linear-gradient(155deg, color-mix(in srgb, var(--cs-chrome-accent) 100%, white 18%), var(--cs-chrome-accent));
-  color: var(--cs-chrome-text-on-accent);
-  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--cs-chrome-accent) 60%, transparent);
-}
-
-.cs-filter { background: var(--cs-chrome-bg-secondary); border: 1px solid var(--cs-chrome-border); color: var(--cs-chrome-text-muted); border-radius: var(--cs-chrome-radius-s); padding: 5px 12px; font-size: .78em; cursor: pointer; transition: background var(--cs-dur-quick) ease, color var(--cs-dur-quick) ease; }
-.cs-filter:hover { background: var(--cs-chrome-bg-hover); }
-.cs-filter.is-active { background: var(--cs-chrome-accent); color: var(--cs-chrome-text-on-accent); border-color: transparent; }
-
-.cs-chat-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--cs-space-3);
-  background: var(--cs-chrome-bg-secondary);
-  border: 1px solid var(--cs-chrome-border);
-  border-radius: var(--cs-chrome-radius-m);
-  padding: 11px 14px;
-  transition: background var(--cs-dur-quick) ease, border-color var(--cs-dur-quick) ease;
-}
-.cs-chat-row:hover { background: var(--cs-chrome-bg-hover); border-color: var(--cs-chrome-accent); }
-.cs-chat-row-main { min-width: 0; }
-.cs-chat-row-side { display: flex; align-items: center; gap: var(--cs-space-2); flex-shrink: 0; }
-.cs-chat-title { font-size: .88em; color: var(--cs-chrome-text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cs-chat-meta { font-size: .72em; color: var(--cs-chrome-text-faint); margin-top: 2px; }
-.cs-badge { font-size: .62em; padding: 3px 7px; border-radius: 5px; background: var(--cs-chrome-bg-elevated); color: var(--cs-chrome-text-muted); text-transform: uppercase; letter-spacing: .03em; font-weight: 700; }
-.cs-badge-claude { background: color-mix(in srgb, var(--cs-chrome-accent) 22%, transparent); color: var(--cs-chrome-accent); }
-.cs-badge-codex { background: color-mix(in srgb, #6ec3ff 22%, transparent); color: #6ec3ff; }
-
-.cs-chat-pager { display: flex; align-items: center; justify-content: center; gap: var(--cs-space-3); margin-top: var(--cs-space-3); }
-
-.cs-branch-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; font-size: .82em; color: var(--cs-chrome-text); border-radius: var(--cs-chrome-radius-s); transition: background var(--cs-dur-quick) ease; }
-.cs-branch-row:hover { background: var(--cs-chrome-bg-hover); }
-.cs-branch-row.is-stale { opacity: .5; }
-.cs-branch-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cs-added); }
-.cs-branch-row.is-stale .cs-branch-dot { background: var(--cs-chrome-text-faint); }
-.cs-section-label { font-size: .68em; color: var(--cs-chrome-text-faint); text-transform: uppercase; letter-spacing: .05em; margin: var(--cs-space-2) 0; }
-
-/* Planet card — the intermediate stage between fly-in and the full workspace */
-.cs-planet-card { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; height: 100%; padding-left: var(--cs-space-2); }
-.cs-planet-card-name { font-size: 1.3em; font-weight: 800; color: var(--cs-chrome-text); }
-.cs-planet-card-sub { font-size: .8em; color: var(--cs-chrome-text-faint); margin: 4px 0 var(--cs-space-4); }
-
-.cs-orbit-ring {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  border: 1px dashed rgba(255, 255, 255, 0.12);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.cs-weekday-prompt {
-  position: absolute;
-  bottom: var(--cs-space-5);
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  z-index: 20;
-  /* this one stays on the space-glass tokens deliberately — it floats
-     over the solar system itself, not inside a landed hub */
-  background: var(--cs-glass-1);
-  border: 1px solid var(--cs-glass-border);
-  border-radius: var(--cs-radius-md);
-  padding: var(--cs-space-3) var(--cs-space-4);
-  display: flex;
-  align-items: center;
-  gap: var(--cs-space-3);
-  white-space: nowrap;
-}
-.cs-weekday-prompt-text { font-size: .85em; }
-
-.cs-empty { color: var(--cs-chrome-text-faint); font-size: .85em; padding: var(--cs-space-4); }
-
-/* Onboarding progress — modal content, so it doesn't sit inside .cs-shell,
-   but the --cs-chrome-* tokens are defined on :root so they still work
-   here for free, keeping the wizard visually consistent with the rest of
-   the app instead of looking like a bare native list. */
-.cs-progress-card {
-  background: var(--cs-chrome-bg-secondary);
-  border: 1px solid var(--cs-chrome-border);
-  border-radius: var(--cs-chrome-radius-m);
-  padding: var(--cs-space-4);
-}
-.cs-progress-status {
-  display: flex;
-  align-items: center;
-  gap: var(--cs-space-3);
-  font-weight: 600;
-  color: var(--cs-chrome-text);
-  margin-bottom: var(--cs-space-3);
-  font-variant-numeric: tabular-nums;
-}
-.cs-progress-status.is-done { color: var(--cs-added); }
-.cs-progress-status.is-warn { color: var(--cs-removed); }
-.cs-spinner {
-  width: 16px;
-  height: 16px;
+  display: grid;
+  place-items: center;
+  border: 1px solid hsl(var(--planet-hue) 52% 58% / 0.5);
   border-radius: 50%;
-  border: 2px solid var(--cs-chrome-border);
-  border-top-color: var(--cs-chrome-accent);
-  animation: cs-spin 0.8s linear infinite;
-  flex-shrink: 0;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--cs-surface-raised) 92%, hsl(var(--planet-hue) 50% 52%) 8%), var(--cs-surface));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2), inset 0 1px 0 color-mix(in srgb, white 7%, transparent);
+  cursor: pointer;
+  transition: border-color var(--cs-dur-fast) var(--cs-ease-standard), box-shadow var(--cs-dur-fast) var(--cs-ease-standard), opacity var(--cs-dur-base) var(--cs-ease-standard), transform var(--cs-dur-fast) var(--cs-ease-out);
 }
+.cs-planet::before { position: absolute; inset: -7px; border: 1px solid hsl(var(--planet-hue) 60% 58% / 0.12); border-radius: inherit; content: ""; transition: inset var(--cs-dur-fast) var(--cs-ease-out), opacity var(--cs-dur-fast) var(--cs-ease-standard); }
+.cs-planet::after { position: absolute; top: 7px; right: 8px; width: 5px; height: 5px; border-radius: 50%; background: hsl(var(--planet-hue) 65% 66%); box-shadow: 0 0 10px hsl(var(--planet-hue) 70% 62% / 0.55); content: ""; }
+.cs-planet:hover, .cs-planet.is-focused { border-color: hsl(var(--planet-hue) 62% 66% / 0.92); box-shadow: 0 17px 38px rgba(0, 0, 0, 0.28), 0 0 0 6px hsl(var(--planet-hue) 62% 55% / 0.07); }
+.cs-planet:hover::before, .cs-planet.is-focused::before { inset: -11px; opacity: 0.75; }
+.cs-planet-mark { color: var(--cs-text); font: 650 0.78em/1 var(--cs-font-ui); letter-spacing: 0.02em; }
+.cs-planet.is-flying { transition: left var(--cs-dur-flight) var(--cs-ease-out), top var(--cs-dur-flight) var(--cs-ease-out), width var(--cs-dur-flight) var(--cs-ease-out), height var(--cs-dur-flight) var(--cs-ease-out); }
+.cs-planet-label { position: absolute; top: calc(100% + 13px); left: 50%; display: grid; gap: 2px; min-width: max-content; transform: translateX(-50%); text-align: center; pointer-events: none; }
+.cs-planet-label-name { color: var(--cs-text); font-size: 0.68em; font-weight: 600; }
+.cs-planet-label-hint { color: var(--cs-text-faint); font-size: 0.56em; opacity: 0; transform: translateY(-2px); transition: opacity var(--cs-dur-fast) var(--cs-ease-standard), transform var(--cs-dur-fast) var(--cs-ease-out); }
+.cs-planet:hover .cs-planet-label-hint, .cs-planet.is-focused .cs-planet-label-hint { opacity: 1; transform: translateY(0); }
+
+.cs-hub-stage { position: absolute; inset: 0; display: none; }
+.cs-hub-stage.is-active { z-index: 30; display: block; }
+.cs-hub-hole { position: absolute; top: calc(50% - 36px); left: calc(50% - 292px); width: 72px; height: 72px; visibility: hidden; }
+.cs-hub-back { position: absolute; z-index: 12; top: var(--cs-space-4); left: var(--cs-space-4); }
+.cs-hub-content { position: absolute; top: 50%; left: 50%; width: min(560px, calc(100% - 48px)); height: auto; max-height: calc(100% - 120px); overflow: auto; border: 1px solid var(--cs-border); border-radius: var(--cs-radius-lg); padding: var(--cs-space-6) var(--cs-space-6) var(--cs-space-6) 132px; background: color-mix(in srgb, var(--cs-surface) 96%, transparent); color: var(--cs-text); box-shadow: 0 28px 80px rgba(0, 0, 0, 0.3), inset 0 1px 0 color-mix(in srgb, var(--cs-text) 5%, transparent); opacity: 0; transform: translate(-50%, calc(-50% + 7px)); transition: opacity var(--cs-dur-base) var(--cs-ease-standard), transform var(--cs-dur-base) var(--cs-ease-out); }
+.cs-hub-content.is-visible { opacity: 1; transform: translate(-50%, -50%); }
+.cs-project-preview { display: flex; flex-direction: column; align-items: flex-start; }
+.cs-planet-card-name { margin-top: var(--cs-space-2); color: var(--cs-text); font-size: clamp(1.45em, 3vw, 1.9em); font-weight: 620; letter-spacing: -0.04em; }
+.cs-planet-card-sub { width: 100%; margin-top: var(--cs-space-2); overflow: hidden; color: var(--cs-text-faint); font: 0.68em/1.5 var(--cs-font-mono); text-overflow: ellipsis; white-space: nowrap; }
+.cs-project-preview-copy { max-width: 46ch; margin: var(--cs-space-4) 0; color: var(--cs-text-muted); font-size: 0.8em; line-height: 1.55; }
+.cs-project-preview-actions { display: flex; gap: var(--cs-space-2); }
+
+/* Workspace: clear hierarchy, no generic SaaS-dashboard tile wall. */
+.cs-workspace-shell { min-height: 100%; overflow: auto; padding: clamp(20px, 4vw, 48px); }
+.cs-workspace-shell .cs-hub-content { position: relative !important; inset: auto !important; width: min(1120px, 100%) !important; height: auto !important; min-height: calc(100vh - 96px); max-height: none; margin: 0 auto; border: 0; border-radius: 0; padding: 0; background: transparent; box-shadow: none; opacity: 1; overflow: visible; transform: none; }
+.cs-hub-header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--cs-space-4); margin-bottom: var(--cs-space-3); }
+.cs-hub-title { display: flex; align-items: center; gap: 10px; color: var(--cs-text); font-size: clamp(1.45em, 3vw, 2em); font-weight: 650; letter-spacing: -0.035em; line-height: 1.1; }
+.cs-hub-title::before { width: 8px; height: 8px; border-radius: 50%; background: var(--cs-accent); box-shadow: 0 0 0 5px color-mix(in srgb, var(--cs-accent) 12%, transparent); content: ""; flex: 0 0 auto; }
+.cs-wip-banner { max-width: 74ch; margin-bottom: var(--cs-space-5); padding: 9px 0 9px var(--cs-space-3); border-left: 2px solid color-mix(in srgb, var(--cs-warning) 74%, var(--cs-border)); color: var(--cs-text-muted); font-size: 0.78em; line-height: 1.5; }
+.cs-workspace-shell .cs-tabs { margin-bottom: var(--cs-space-6); }
+.cs-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--cs-space-3); }
+.cs-stat { position: relative; min-height: 112px; overflow: hidden; padding: var(--cs-space-4); border: 1px solid var(--cs-border); border-radius: var(--cs-radius-md); background: color-mix(in srgb, var(--cs-surface) 78%, transparent); transition: border-color var(--cs-dur-fast) var(--cs-ease-standard), transform var(--cs-dur-fast) var(--cs-ease-out), background var(--cs-dur-fast) var(--cs-ease-standard); }
+.cs-stat:hover { border-color: var(--cs-border-strong); background: var(--cs-surface); transform: translateY(-1px); }
+.cs-stat::after { position: absolute; top: 0; left: var(--cs-space-4); width: 22px; height: 2px; border-radius: var(--cs-radius-full); background: color-mix(in srgb, var(--cs-accent) 78%, transparent); content: ""; }
+.cs-stat-label, .cs-section-label { color: var(--cs-text-faint); font-size: 0.66em; font-weight: 650; letter-spacing: 0.075em; line-height: 1.3; text-transform: uppercase; }
+.cs-stat-value { margin-top: var(--cs-space-2); color: var(--cs-text); font: 620 clamp(1.32em, 2.1vw, 1.74em)/1 var(--cs-font-mono); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.cs-stat .cs-chat-meta { margin-top: var(--cs-space-2); }
+.cs-section-label { margin: var(--cs-space-6) 0 var(--cs-space-3); }
+.cs-chat-list { display: flex; flex-direction: column; }
+.cs-chat-row { display: flex; align-items: center; justify-content: space-between; gap: var(--cs-space-4); min-width: 0; padding: 12px var(--cs-space-2) 12px 0; border-bottom: 1px solid var(--cs-border); border-radius: var(--cs-radius-sm); outline: none; transition: padding var(--cs-dur-fast) var(--cs-ease-out), background var(--cs-dur-fast) var(--cs-ease-standard), border-color var(--cs-dur-fast) var(--cs-ease-standard); }
+.cs-chat-row:hover { padding-right: var(--cs-space-3); padding-left: var(--cs-space-3); border-color: transparent; background: var(--cs-surface-hover); }
+.cs-chat-row-main { min-width: 0; }
+.cs-chat-row-side { display: flex; flex: 0 0 auto; align-items: center; gap: var(--cs-space-2); }
+.cs-chat-row-side .cs-btn { opacity: 0; }
+.cs-chat-row:hover .cs-chat-row-side .cs-btn, .cs-chat-row:focus-within .cs-chat-row-side .cs-btn { opacity: 1; }
+.cs-chat-title { overflow: hidden; color: var(--cs-text); font-size: 0.86em; font-weight: 570; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.cs-chat-meta { margin-top: 3px; color: var(--cs-text-faint); font-size: 0.72em; line-height: 1.45; }
+.cs-badge { display: inline-flex; align-items: center; min-height: 20px; border: 1px solid var(--cs-border); border-radius: var(--cs-radius-full); padding: 0 7px; color: var(--cs-text-muted); font-size: 0.6em; font-weight: 650; letter-spacing: 0.055em; line-height: 1; text-transform: uppercase; white-space: nowrap; }
+.cs-badge-claude { border-color: color-mix(in srgb, #d97757 28%, var(--cs-border)); background: color-mix(in srgb, #d97757 10%, transparent); color: color-mix(in srgb, #d97757 75%, var(--cs-text)); }
+.cs-badge-codex { border-color: color-mix(in srgb, #5e95e9 28%, var(--cs-border)); background: color-mix(in srgb, #5e95e9 10%, transparent); color: color-mix(in srgb, #5e95e9 75%, var(--cs-text)); }
+.cs-chat-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--cs-space-3); margin-top: var(--cs-space-5); }
+.cs-branch-row { display: flex; align-items: center; gap: var(--cs-space-2); min-height: 34px; padding: 6px var(--cs-space-2); border-radius: var(--cs-radius-sm); color: var(--cs-text); font-size: 0.8em; transition: background var(--cs-dur-fast) var(--cs-ease-standard), padding var(--cs-dur-fast) var(--cs-ease-out); }
+.cs-branch-row:hover { padding-right: var(--cs-space-3); padding-left: var(--cs-space-3); background: var(--cs-surface-hover); }
+.cs-branch-row.is-stale { opacity: 0.54; }
+.cs-branch-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cs-success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cs-success) 10%, transparent); }
+.cs-branch-row.is-stale .cs-branch-dot { background: var(--cs-text-faint); box-shadow: none; }
+.cs-graph-host { position: relative; width: 100%; height: clamp(280px, 52vh, 520px); margin-top: var(--cs-space-3); overflow: hidden; border: 1px solid var(--cs-border); border-radius: var(--cs-radius-lg); background: #11151d; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), var(--cs-shadow-sm); }
+.cs-worklog-out { min-height: 100px; margin-top: var(--cs-space-4); padding: var(--cs-space-4); overflow: auto; border: 1px solid var(--cs-border); border-radius: var(--cs-radius-md); background: color-mix(in srgb, var(--cs-surface) 76%, transparent); color: var(--cs-text-muted); font: 0.78em/1.65 var(--cs-font-mono); white-space: pre-line; }
+
+/* Empty, loading and progress states remain useful, not blank. */
+.cs-empty { display: grid; place-items: center; min-height: 150px; max-width: 520px; margin: var(--cs-space-4) auto; padding: var(--cs-space-6); border: 1px dashed color-mix(in srgb, var(--cs-border) 80%, transparent); border-radius: var(--cs-radius-lg); color: var(--cs-text-muted); font-size: 0.82em; line-height: 1.6; text-align: center; }
+.cs-empty::before { width: 22px; height: 22px; margin-bottom: var(--cs-space-2); border: 1px solid color-mix(in srgb, var(--cs-accent) 58%, var(--cs-border)); border-radius: 50%; box-shadow: inset 0 0 0 5px color-mix(in srgb, var(--cs-accent) 10%, transparent); content: ""; }
+.cs-solar-wrap > .cs-empty { position: absolute; top: 50%; left: 50%; min-width: min(390px, calc(100% - 32px)); transform: translate(-50%, -50%); background: color-mix(in srgb, var(--cs-surface) 85%, transparent); box-shadow: var(--cs-shadow-md); }
+.cs-progress-card { border: 1px solid var(--cs-border); border-radius: var(--cs-radius-lg); padding: var(--cs-space-4); background: var(--cs-surface); box-shadow: var(--cs-shadow-sm); }
+.cs-progress-status { display: flex; align-items: center; gap: var(--cs-space-3); margin-bottom: var(--cs-space-3); color: var(--cs-text); font-size: 0.85em; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cs-progress-status.is-done { color: var(--cs-success); }
+.cs-progress-status.is-warn { color: var(--cs-warning); }
+.cs-spinner { width: 16px; height: 16px; border: 2px solid color-mix(in srgb, var(--cs-border) 80%, transparent); border-top-color: var(--cs-accent); border-radius: 50%; animation: cs-spin 0.8s linear infinite; }
+.cs-progress-list { display: flex; flex-direction: column; gap: 2px; max-height: 260px; overflow-y: auto; }
+.cs-progress-row { padding: 7px var(--cs-space-2); border-radius: var(--cs-radius-sm); color: var(--cs-text-muted); font-size: 0.78em; line-height: 1.45; }
+.cs-progress-row.is-done { color: var(--cs-text); }
+.cs-progress-row.is-done::before { color: var(--cs-success); content: "✓ "; }
+.cs-progress-row.is-warn { background: color-mix(in srgb, var(--cs-warning) 10%, transparent); color: var(--cs-text); }
+.cs-progress-row.is-warn::before { color: var(--cs-warning); content: "! "; }
+.cs-progress-row.is-info { color: var(--cs-text-faint); }
+
+/* Modals stay recognizably native to Obsidian but gain considered rhythm. */
+.cs-modal { color: var(--cs-text); font-family: var(--cs-font-ui); }
+.cs-modal > h2 { margin: 0 0 var(--cs-space-2); color: var(--cs-text); font-size: 1.35em; font-weight: 650; letter-spacing: -0.025em; }
+.cs-modal > p { max-width: 68ch; color: var(--cs-text-muted); font-size: 0.85em; line-height: 1.55; }
+.cs-modal .setting-item { padding: var(--cs-space-3) 0; border-top-color: var(--cs-border); }
+.cs-modal .setting-item-name { color: var(--cs-text); font-size: 0.88em; font-weight: 580; }
+.cs-modal .setting-item-description { color: var(--cs-text-muted); font-size: 0.76em; line-height: 1.45; }
+.cs-modal pre { max-height: 60vh; overflow: auto; border: 1px solid var(--cs-border); border-radius: var(--cs-radius-md); padding: var(--cs-space-3); background: var(--cs-surface); color: var(--cs-text-muted); font: 0.75em/1.55 var(--cs-font-mono); }
+
+/* Greeting is the only deliberately cinematic moment and remains restrained. */
+.cs-greeting { position: absolute; z-index: 30; inset: 0; display: grid; place-items: center; overflow: hidden; color: #f7f8fc; text-align: center; opacity: 0; transition: opacity var(--cs-dur-slow) var(--cs-ease-standard); }
+.cs-greeting.is-visible { opacity: 1; }.cs-greeting.is-leaving { opacity: 0; }
+.cs-sky-morning { background: linear-gradient(180deg, #4e596c, #b77c64 54%, #283242); }.cs-sky-day { background: linear-gradient(180deg, #304d6c, #557b9a 56%, #283444); }.cs-sky-sunset { background: linear-gradient(180deg, #393655, #865262 58%, #2a3041); }.cs-sky-night { background: linear-gradient(180deg, #141b2a, #202940 56%, #151a27); }
+.cs-greeting-text { position: relative; z-index: 1; padding: var(--cs-space-5); animation: cs-greeting-in var(--cs-dur-slow) var(--cs-ease-out) both; }.cs-greeting-line { font-size: clamp(1.5em, 4vw, 2.2em); font-weight: 650; letter-spacing: -0.04em; }.cs-greeting-sub { margin-top: var(--cs-space-2); opacity: 0.72; font-size: 0.8em; }.cs-greeting-stars { position: absolute; inset: 0; opacity: 0.7; }.cs-star { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff; animation: cs-star-twinkle 3.2s ease-in-out infinite; }.cs-star-big { width: 3px; height: 3px; box-shadow: 0 0 8px rgba(255, 255, 255, 0.8); }
+.cs-checkin-bar { display: inline-flex; align-items: center; gap: var(--cs-space-2); }.cs-checkin-elapsed { font-family: var(--cs-font-mono); font-variant-numeric: tabular-nums; }.cs-checkin-toggle { color: var(--cs-accent); cursor: pointer; transition: color var(--cs-dur-fast) var(--cs-ease-standard); }.cs-checkin-toggle:hover { color: var(--cs-accent-hover); text-decoration: none; }
+
+@keyframes cs-content-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes cs-greeting-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes cs-halo-breathe { 0%, 100% { opacity: 0.45; transform: scale(0.96); } 50% { opacity: 0.9; transform: scale(1.04); } }
+@keyframes cs-star-twinkle { 0%, 100% { opacity: 0.22; } 50% { opacity: 0.9; } }
 @keyframes cs-spin { to { transform: rotate(360deg); } }
-.cs-progress-list { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
-.cs-progress-row {
-  font-size: .82em;
-  padding: 6px 10px;
-  border-radius: var(--cs-chrome-radius-s);
-  color: var(--cs-chrome-text-muted);
-}
-.cs-progress-row.is-done { color: var(--cs-chrome-text); }
-.cs-progress-row.is-done::before { content: '✓ '; color: var(--cs-added); font-weight: 700; }
-.cs-progress-row.is-warn { color: var(--cs-chrome-text); background: color-mix(in srgb, var(--cs-removed) 12%, transparent); }
-.cs-progress-row.is-warn::before { content: '⚠ '; }
-.cs-progress-row.is-info { color: var(--cs-chrome-text-faint); }
-@media (prefers-reduced-motion: reduce) {
-  .cs-spinner { animation: none; border-top-color: var(--cs-chrome-border); }
-}
-.cs-date-input {
-  background: var(--cs-chrome-bg-secondary);
-  border: 1px solid var(--cs-chrome-border);
-  border-radius: var(--cs-chrome-radius-s);
-  color: var(--cs-chrome-text);
-  font-family: var(--cs-chrome-font);
-  padding: 8px 12px;
-  margin-right: var(--cs-space-2);
-  transition: border-color var(--cs-dur-quick) ease;
-}
-.cs-date-input:focus-visible { outline: none; border-color: var(--cs-chrome-border-focus); }
-.cs-worklog-out {
-  background: var(--cs-chrome-bg-secondary);
-  border: 1px solid var(--cs-chrome-border);
-  border-radius: var(--cs-chrome-radius-m);
-  color: var(--cs-chrome-text);
-  padding: var(--cs-space-4);
-  margin-top: var(--cs-space-3);
-  font-family: var(--cs-chrome-font-mono);
-  font-size: .82em;
-  white-space: pre-line;
-}
 
-/* Keyboard focus — every interactive element gets a visible ring, not just
-   buttons. :focus-visible (not :focus) so mouse clicks don't show a ring,
-   only actual keyboard navigation. The solar system (sun/planets) keeps
-   the cosmic accent ring; landed-hub chrome uses the theme's own focus
-   border color so it matches whatever the user's theme defines. */
-.cs-planet:focus-visible,
-.cs-sun:focus-visible {
-  outline: none;
-  box-shadow: var(--cs-focus-ring);
+@media (max-width: 760px) {
+  .cs-topbar { min-height: 56px; padding: 0 var(--cs-space-4); }
+  .cs-solar-wrap { inset: 56px 0 0; }
+  .cs-home-intro { top: var(--cs-space-5); left: var(--cs-space-4); }
+  .cs-home-subtitle { max-width: 34ch; }
+  .cs-hub-hole { top: calc(50% - 190px); left: calc(50% - 36px); }
+  .cs-hub-content { top: 62%; width: calc(100% - 32px); max-height: 48%; padding: var(--cs-space-5); }
+  .cs-workspace-shell { padding: var(--cs-space-5) var(--cs-space-4); }
+  .cs-workspace-shell .cs-hub-content { min-height: calc(100vh - 72px); }
+  .cs-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cs-chat-row { align-items: flex-start; }
+  .cs-chat-row-side { flex-wrap: wrap; justify-content: flex-end; }
+  .cs-chat-row-side .cs-btn { opacity: 1; }
 }
-.cs-btn:focus-visible,
-.cs-tab:focus-visible,
-.cs-filter:focus-visible,
-.cs-chat-row:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--cs-chrome-bg), 0 0 0 4px var(--cs-chrome-border-focus);
+@media (max-width: 460px) {
+  .cs-topbar-title { font-size: 0.84em; }
+  .cs-topbar-add { padding: 0 9px; }
+  .cs-home-title { font-size: 1.4em; }
+  .cs-hub-content { padding: var(--cs-space-4); }
+  .cs-hub-back { top: var(--cs-space-3); left: var(--cs-space-3); }
+  .cs-stat-grid { grid-template-columns: 1fr; }
+  .cs-stat { min-height: 94px; }
+  .cs-filter-row > .cs-chat-meta { width: 100%; }
+  .cs-chat-row { gap: var(--cs-space-2); }
+  .cs-chat-row-side .cs-badge { display: none; }
+  .cs-empty { min-height: 130px; padding: var(--cs-space-5); }
 }
-.cs-chat-row { outline: none; }
-
-/* Status bar check-in widget — native Obsidian status bar styling applies
-   to the container automatically; these only add the interactive bits. */
-.cs-checkin-bar { display: flex; align-items: center; }
-.cs-checkin-elapsed { font-family: var(--cs-chrome-font-mono); }
-.cs-checkin-toggle { cursor: pointer; color: var(--cs-chrome-accent); }
-.cs-checkin-toggle:hover { text-decoration: underline; }
-
+@media (prefers-reduced-motion: reduce) { .cs-shell *, .cs-shell *::before, .cs-shell *::after, .cs-modal *, .cs-modal *::before, .cs-modal *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 1ms !important; } }

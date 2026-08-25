@@ -46,6 +46,10 @@ export type RawLine = RawAssistantLine | RawUserLine | RawOtherLine;
 export interface ParsedSession {
   sessionId: string;
   cwd: string | null; // read from line content — never reconstructed from the slug, see discover.ts
+  /** From a `custom-title` line, when present — Claude Code lets the user (or itself) set an explicit session title. Preferred title source when it exists. */
+  customTitle: string | null;
+  /** From a `last-prompt` line, when present — the user's own first/most-recent prompt text, truncated. Falls back to this when there's no custom-title, since it's a far more useful label than a bare session id. */
+  lastPrompt: string | null;
   firstTimestamp: string | null;
   lastTimestamp: string | null;
   messageCount: number;

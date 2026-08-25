@@ -3,7 +3,7 @@ import { VIEW_TYPE_HOME } from '../../constants';
 import type CodestellationPlugin from '../../main';
 import { loadRegistry, type RegistryEntry } from '../../domain/project-registry';
 import { OrbitEngine } from '../solar/orbit-engine';
-import { createPlanets, positionPlanets } from '../solar/planet';
+import { createPlanets, planetRadiusForIndex, positionPlanets } from '../solar/planet';
 import { createSun } from '../solar/sun';
 import { showGreeting } from '../solar/greeting';
 import { createFlightController, type FlightController } from '../solar/fly-to-center';
@@ -58,7 +58,7 @@ export class HomeView extends ItemView {
 
     const registry = await loadRegistry(this.app.vault);
 
-    const shell = container.createDiv({ cls: 'cs-shell' });
+    const shell = container.createDiv({ cls: 'cs-shell cs-home-shell' });
     const topbar = shell.createDiv({ cls: 'cs-topbar' });
     topbar.createDiv({ cls: 'cs-topbar-title', text: 'Codestellation' });
     const addBtn = topbar.createEl('button', { cls: 'cs-btn cs-btn-ghost cs-topbar-add', text: '+ Add project' });
@@ -67,6 +67,13 @@ export class HomeView extends ItemView {
     );
 
     const solarWrap = shell.createDiv({ cls: 'cs-solar-wrap' });
+    const intro = solarWrap.createDiv({ cls: 'cs-home-intro' });
+    intro.createDiv({ cls: 'cs-home-eyebrow', text: 'Project constellation' });
+    intro.createDiv({ cls: 'cs-home-title', text: 'Choose where to focus.' });
+    intro.createDiv({
+      cls: 'cs-home-subtitle',
+      text: `${registry.length} project${registry.length === 1 ? '' : 's'} in orbit · select one to open its workspace`,
+    });
     const hubStage = shell.createDiv({ cls: 'cs-hub-stage' });
     const hubBack = hubStage.createEl('button', { cls: 'cs-btn cs-btn-ghost cs-hub-back', text: '← Back' });
     hubBack.hidden = true;
@@ -77,6 +84,14 @@ export class HomeView extends ItemView {
       this.renderEmptyState(solarWrap);
       return;
     }
+
+    const orbitRings = solarWrap.createDiv({ cls: 'cs-orbit-rings' });
+    registry.forEach((_, index) => {
+      const diameter = planetRadiusForIndex(index) * 2;
+      const ring = orbitRings.createDiv({ cls: 'cs-orbit-ring' });
+      ring.style.width = `${diameter}px`;
+      ring.style.height = `${diameter}px`;
+    });
 
     let flyingProjectId: string | null = null;
     const engine = new OrbitEngine({ onTick: (positions) => positionPlanets(planetElements, positions, { skipId: flyingProjectId }) });
@@ -106,9 +121,16 @@ export class HomeView extends ItemView {
         onFocused: () => {
           hubBack.hidden = false;
           hubContent.empty();
-          hubContent.createDiv({ cls: 'cs-planet-card-name', text: entry.name });
-          hubContent.createDiv({ cls: 'cs-planet-card-sub', text: entry.path });
-          const launchBtn = hubContent.createEl('button', { cls: 'cs-btn cs-btn-primary', text: 'Launch →' });
+          const preview = hubContent.createDiv({ cls: 'cs-project-preview' });
+          preview.createDiv({ cls: 'cs-home-eyebrow', text: 'Project workspace' });
+          preview.createDiv({ cls: 'cs-planet-card-name', text: entry.name });
+          preview.createDiv({ cls: 'cs-planet-card-sub', text: entry.path });
+          preview.createDiv({
+            cls: 'cs-project-preview-copy',
+            text: 'Chats, branches, graph context, activity, and work logs—together in one focused view.',
+          });
+          const actionRow = preview.createDiv({ cls: 'cs-project-preview-actions' });
+          const launchBtn = actionRow.createEl('button', { cls: 'cs-btn cs-btn-primary', text: 'Open workspace' });
           launchBtn.addEventListener('click', () => {
             // opening the workspace view is async and can throw (bad view
             // state, a leaf API change, etc.) — without this, a failure here

@@ -87,6 +87,7 @@ export class OnboardingWizardModal extends Modal {
     // in renderFolders() later) both need Codestellation/_data to already
     // exist — ensure it silently up front rather than making every step
     // that persists something guard against a missing parent folder
+    this.contentEl.addClass('cs-modal');
     await ensureFolders(this.app.vault, baseFolderPlan());
     this.render();
   }
